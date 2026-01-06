@@ -1,55 +1,32 @@
 apiVersion: ocs.openshift.io/v1
 kind: StorageCluster
 metadata:
+  name: ocs-storagecluster
+  namespace: openshift-storage
   annotations:
     uninstall.ocs.openshift.io/cleanup-policy: delete
     uninstall.ocs.openshift.io/mode: graceful
-  name: ocs-storagecluster
-  namespace: openshift-storage
-  ownerReferences:
-    - apiVersion: odf.openshift.io/v1alpha1
-      kind: StorageSystem
-      name: ocs-storagecluster-storagesystem
-  finalizers:
-    - storagecluster.ocs.openshift.io
 spec:
-  arbiter: {}
-  encryption:
-    keyRotation:
-      schedule: '@weekly'
-    kms: {}
-  externalStorage: {}
-  managedResources:
-    cephObjectStoreUsers: {}
-    cephCluster: {}
-    cephBlockPools: {}
-    cephNonResilientPools:
-      count: 1
-      resources: {}
-      volumeClaimTemplate:
-        metadata: {}
-        spec:
-          resources: {}
-        status: {}
-    cephObjectStores: {}
-    cephFilesystems:
-      dataPoolSpec:
-        application: ''
-        erasureCoded:
-          codingChunks: 0
-          dataChunks: 0
-        mirroring: {}
-        quotas: {}
-        replicated:
-          size: 0
-        statusCheck:
-          mirror: {}
-    cephRBDMirror:
-      daemonCount: 1
-    cephToolbox: {}
-    cephDashboard: {}
-    cephConfig: {}
+  monDataDirHostPath: '' 
+  manageNodes: false
   multiCloudGateway:
-    dbStorageClassName: gp3-csi
     reconcileStrategy: standalone
-  resourceProfile: balanced
+    dbStorageClassName: gp3-csi
+  storageDeviceSets:
+    - name: ocs-deviceset
+      count: 1
+      replica: 3
+      resources:
+        requests:
+          storage: 100Gi
+      placement: {}
+      portable: true
+      dataPVCTemplate:
+        spec:
+          storageClassName: gp3-csi
+          accessModes:
+            - ReadWriteOnce
+          volumeMode: Block
+          resources:
+            requests:
+              storage: 100Gi
