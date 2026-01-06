@@ -97,11 +97,6 @@ spec:
                   type: string
                   description: The organization in Quay where the image will be stored.
                   default: quayadmin
-                image_password:
-                  title: Password
-                  type: string
-                  description: Your Quay password
-                  ui:field: Secret
                 image_tag:
                   title: Image Tag
                   default: latest
@@ -192,7 +187,7 @@ spec:
           namespace: ${{ parameters.component_id }}-dev
           image_registry: ${{ parameters.image_registry }}
           image_host: ${{ parameters.image_host }}
-          image_password: ${{ secrets.image_password }}
+          image_password: backstage
           image_name: ${{ parameters.component_id }}
           image_tag: ${{ parameters.image_tag }}
           repository_host: ${{ parameters.repo.host }}
