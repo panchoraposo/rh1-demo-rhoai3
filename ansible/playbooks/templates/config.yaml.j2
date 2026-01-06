@@ -1,0 +1,33 @@
+AUTHENTICATION_TYPE: "Database"
+FEATURE_USER_INITIALIZE: true
+BROWSER_API_CALLS_XHR_ONLY: false
+FEATURE_USER_CREATION: true
+SUPER_USERS:
+- quayadmin
+FEATURE_OAUTH_PASSWORD_GRANT: true
+
+FEATURE_REPO_MIRROR: true
+
+SERVER_HOSTNAME: "{{ quay_host }}"
+
+FAILED_LOGIN_LIMIT: 1000
+FAILED_LOGIN_TIME_SEC: 1
+
+DISTRIBUTED_STORAGE_CONFIG:
+  default:
+    - RHOCSStorage
+    - access_key: "{{ quay_s3_access_key }}"
+      bucket_name: "{{ quay_s3_bucket_name }}"
+      hostname: "s3-openshift-storage.{{ openshift_base_domain }}"
+      is_secure: true
+      port: 443
+      secret_key: "{{ quay_s3_secret_key }}"
+      storage_path: /datastorage/registry
+
+DISTRIBUTED_STORAGE_DEFAULT_LOCATIONS: []
+DISTRIBUTED_STORAGE_PREFERENCE:
+  - default
+
+EXTERNAL_TLS_TERMINATION: true
+DEFAULT_VISIBILITY: public
+CREATE_PRIVATE_REPO_ON_PUSH: false

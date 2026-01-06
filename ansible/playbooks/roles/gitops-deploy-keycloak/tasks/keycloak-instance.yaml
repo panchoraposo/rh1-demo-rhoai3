@@ -1,0 +1,38 @@
+---
+- name: Eliminar carpeta temporal si ya existe
+  ansible.builtin.file:
+    path: /tmp/developer-hub
+    state: absent
+
+- name: Clonar el repositorio que contiene los manifiestos
+  git:
+    repo: "{{ gitops_repo }}"
+    dest: "{{ gitops_repo_path }}"
+    version: main
+    force: yes
+
+- name: Renderizar manifiesto de instancia Keycloak con hostname personalizado
+  template:
+    src: "templates/keycloak-instance.yaml.j2"
+    dest: "{{ gitops_repo_path }}/apps/keycloak/overlays/dev/keycloak-instance.yaml"
+
+- name: Aplicar manifiesto de instancia Keycloak
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ gitops_repo_path }}/apps/keycloak/overlays/dev/keycloak-instance.yaml"
+
+- name: Esperar que el pod de Keycloak esté en estado Ready
+  shell: |
+    oc wait --for=condition=Ready pod -l app.kubernetes.io/instance=keycloak -n keycloak --timeout=180s
+  register: wait_for_pod
+  retries: 6
+  delay: 10
+  until: wait_for_pod.rc == 0
+
+- name: Esperar que el Secret "keycloak-initial-admin" exista
+  shell: |
+    oc -n keycloak get secret keycloak-initial-admin
+  register: secret_check
+  retries: 10
+  delay: 10
+  until: secret_check.rc == 0

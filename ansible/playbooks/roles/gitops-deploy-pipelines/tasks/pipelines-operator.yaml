@@ -1,0 +1,25 @@
+---
+- name: Crear aplicación ArgoCD para Pipelines Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: pipelines-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: main
+          path: apps/pipelines-operator/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: openshift-operators
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true

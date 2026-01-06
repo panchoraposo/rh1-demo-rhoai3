@@ -1,0 +1,27 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: lokistack
+  namespace: openshift-logging
+spec:
+  size: 1x.demo
+  storage:
+    schemas:
+      - version: v12
+        effectiveDate: "2022-06-01"
+    secret:
+      name: logging-loki-s3 
+      type: s3
+  storageClassName: gp3-csi
+  overrides:
+    volumeClaimTemplates:
+      storageClassName: gp3-csi
+  tenants:
+    mode: openshift-logging
+  components:
+    receiver:
+      otlp:
+        enabled: true
+        protocols:
+          http: true
+          grpc: false

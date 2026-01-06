@@ -1,0 +1,9 @@
+---
+- name: Deploy Red Hat Build of OpenTelemetry
+  include_tasks: deploy-otel.yaml
+
+- name: Deploy Distributed Tracing
+  include_tasks: distributed-tracing.yaml
+
+- name: Deploy Cluster Observability Operator & Distributed Tracing UI
+  include_tasks: cluster-observability.yaml

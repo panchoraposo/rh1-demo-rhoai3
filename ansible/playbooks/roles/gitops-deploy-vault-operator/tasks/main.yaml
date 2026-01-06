@@ -1,0 +1,11 @@
+- name: External Secrets Operator
+  include_tasks: external-secrets.yaml
+
+- name: Vault Operator
+  include_tasks: vault-operator.yaml
+
+- name: Config Vault
+  include_tasks: config-vault.yaml
+
+- name: Config External Secrets
+  include_tasks: config-external-secrets.yaml

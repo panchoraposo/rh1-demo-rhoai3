@@ -1,0 +1,3 @@
+---
+- name: Deploy Logging
+  include_tasks: deploy-logging.yaml

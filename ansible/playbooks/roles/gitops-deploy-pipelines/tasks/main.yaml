@@ -1,0 +1,2 @@
+- name: Install Red Hat OpenShift Pipelines operator
+  include_tasks: pipelines-operator.yaml

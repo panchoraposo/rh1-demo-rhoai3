@@ -1,0 +1,165 @@
+- name: Crear Role para ArgoCD en namespace backstage
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: argocd-app-controller
+        namespace: backstage
+      rules:
+        - apiGroups: [""]
+          resources: ["serviceaccounts", "pods", "services", "secrets", "configmaps", "persistentvolumeclaims"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["apps"]
+          resources: ["deployments", "statefulsets", "replicasets"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["batch"]
+          resources: ["jobs", "cronjobs"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["route.openshift.io"]
+          resources: ["routes"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["rhdh.redhat.com"]
+          resources: ["backstages"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- name: Asegurar que RoleBinding antiguo no exista para permitir recreación
+  kubernetes.core.k8s:
+    state: absent
+    api_version: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    name: argocd-app-controller-binding
+    namespace: backstage
+  register: delete_rb_result
+  until: delete_rb_result.method is not defined or delete_rb_result.method == 'delete'
+  retries: 5
+  delay: 2
+  ignore_errors: true
+
+- name: Asociar Role de backstage al Application Controller de ArgoCD
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: argocd-app-controller-binding
+        namespace: backstage
+      subjects:
+        - kind: ServiceAccount
+          name: openshift-gitops-argocd-application-controller
+          namespace: openshift-gitops
+      roleRef:
+        kind: Role
+        name: argocd-app-controller
+        apiGroup: rbac.authorization.k8s.io
+
+- name: Crear Application ArgoCD para Developer Hub Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: developer-hub-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
+          targetRevision: main
+          path: apps/developer-hub-operator/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: backstage
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+  register: deploy_operator_app_result
+  until: deploy_operator_app_result is succeeded
+  retries: 5
+  delay: 10
+
+- name: Esperar que el operador Developer Hub esté Available
+  ansible.builtin.shell: |
+    oc wait --for=condition=Available deployment rhdh-operator -n backstage --timeout=300s
+  register: wait_rhdh_operator
+  until: wait_rhdh_operator.rc == 0
+  retries: 10
+  delay: 15
+
+- name: Generar un valor aleatorio para el Backend Secret
+  ansible.builtin.set_fact:
+    backend_secret_value: "{{ lookup('password', '/dev/null length=48 chars=ascii_letters,digits') }}"
+  run_once: true
+
+- name: Parchear el secret existente 'backstage-env' con el BACKEND_SECRET
+  kubernetes.core.k8s:
+    state: patched
+    kind: Secret
+    api_version: v1
+    name: backstage-env
+    namespace: backstage
+    definition:
+      stringData:
+        BACKEND_SECRET: "{{ backend_secret_value }}"
+
+- name: Parchear el CR de Backstage para que use el secret 'backstage-env'
+  kubernetes.core.k8s:
+    state: patched
+    kind: Backstage
+    api_version: rhdh.redhat.com/v1alpha1
+    name: developer-hub
+    namespace: backstage
+    definition:
+      spec:
+        application:
+          extraEnvFrom:
+            - secretRef:
+                name: backstage-env
+
+- name: Crear Application ArgoCD para Developer Hub
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: developer-hub
+        namespace: openshift-gitops
+      spec:
+        destination:
+          namespace: backstage
+          server: "https://kubernetes.default.svc"
+        project: default
+        source:
+          repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
+          targetRevision: main
+          path: apps/developer-hub/overlays/dev
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+
+- name: Esperar a que la Application 'developer-hub' esté Synced y Healthy
+  kubernetes.core.k8s_info:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: developer-hub
+    namespace: openshift-gitops
+  register: argo_app_status
+  until: >
+    argo_app_status.resources | length > 0 and
+    argo_app_status.resources[0].status is defined and
+    argo_app_status.resources[0].status.sync is defined and
+    argo_app_status.resources[0].status.sync.status == "Synced" and
+    argo_app_status.resources[0].status.health is defined and
+    argo_app_status.resources[0].status.health.status == "Healthy"
+  retries: 30
+  delay: 10
+  vars:
+    ansible_conditional_need_retry: true

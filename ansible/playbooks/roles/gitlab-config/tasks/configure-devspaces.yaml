@@ -1,0 +1,47 @@
+- name: "Deshabilitar protección de ramas por defecto en GitLab"
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/application/settings"
+    method: PUT
+    headers:
+      PRIVATE-TOKEN: "{{ gitlab_pat }}"
+    body_format: json
+    body:
+      default_branch_protection: 0 
+    status_code: 200
+    validate_certs: "{{ validate_ssl_certs }}"
+
+- name: "Crear Aplicación OAuth para OpenShift Dev Spaces"
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/applications"
+    method: POST
+    headers:
+      PRIVATE-TOKEN: "{{ gitlab_pat }}"
+    body_format: json
+    body:
+      name: "OpenShift Dev Spaces"
+      redirect_uri: "https://devspaces.{{ openshift_base_domain }}/api/oauth/callback"
+      scopes: "api read_user read_repository write_repository openid profile email"
+      confidential: true
+    status_code: [201, 400]
+  register: gitlab_oauth_app
+
+- name: "Crear Secret 'gitlab-oauth-config' para Dev Spaces"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gitlab-oauth-config
+        namespace: openshift-devspaces
+        labels:
+          app.kubernetes.io/component: oauth-scm-configuration
+          app.kubernetes.io/part-of: che.eclipse.org
+        annotations:
+          che.eclipse.org/oauth-scm-server: gitlab
+          che.eclipse.org/scm-server-endpoint: "https://{{ gitlab_host }}"
+      type: Opaque
+      data:
+        id: "{{ gitlab_oauth_app.json.application_id | b64encode }}"
+        secret: "{{ gitlab_oauth_app.json.secret | b64encode }}"
+  when: gitlab_oauth_app.status == 201

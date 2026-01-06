@@ -1,0 +1,281 @@
+app:
+  title: Red Hat Developer Hub on OpenShift
+
+backend:
+  baseUrl: https://backstage-developer-hub-backstage.{{ openshift_base_domain }}
+  listen:
+    port: 7007
+    host: 0.0.0.0
+  
+  auth:
+     externalAccess:
+       - type: static
+         options:
+           token: ${MCP_TOKEN}
+           subject: mcp-clients
+
+  actions:
+     pluginSources:
+       - software-catalog-mcp-tool
+       - techdocs-mcp-tool
+
+## This is a development and testing authentication configuration
+#auth:
+#  providers:
+#    guest:
+#    dangerouslyAllowOutsideDevelopment: true
+
+auth:
+  session:
+    secret: ${BACKEND_SECRET}
+  environment: production
+  providers:
+    oidc:
+      production:
+        prompt: auto
+        metadataUrl: https://keycloak.{{ openshift_base_domain }}/realms/backstage/.well-known/openid-configuration
+        clientId: backstage
+        clientSecret: ${OAUTH_CLIENT_SECRET}
+        signIn:
+          resolvers:
+            - resolver: preferredUsernameMatchingUserEntityName
+signInPage: oidc
+
+quay:
+  uiUrl: https://quay.{{ openshift_base_domain }}
+
+proxy:
+  endpoints:
+    '/quay/api':
+      target: 'https://quay.{{ openshift_base_domain }}'
+      headers:
+        X-Requested-With: 'XMLHttpRequest'
+        Authorization: 'Bearer ${QUAY_TOKEN}'
+      changeOrigin: true
+      secure: false
+
+dynamicPlugins:
+  frontend:
+    backstage-community.plugin-quay:
+      mountPoints:
+        - mountPoint: entity.page.image-registry/cards
+          importName: QuayPage
+          config:
+            layout:
+              gridColumn: 1 / -1
+            if:
+              anyOf:
+                - isQuayAvailable
+    backstage-community.plugin-ocm:
+      appIcons:
+        - name: ocmIcon
+          importName: OcmIcon
+      dynamicRoutes:
+        - path: /ocm
+          importName: OcmPage
+          menuItem:
+            icon: ocmIcon
+            text: Clusters
+      mountPoints:
+        - mountPoint: entity.page.overview/context
+          importName: ClusterContextProvider
+        - mountPoint: entity.page.overview/cards
+          importName: ClusterAvailableResourceCard
+          config:
+            layout:
+              gridColumnEnd:
+                lg: span 4
+                md: span 6
+                xs: span 12
+            if:
+              allOf:
+                - isKind: resource
+                - isType: kubernetes-cluster
+        - mountPoint: entity.page.overview/cards
+          importName: ClusterInfoCard
+          config:
+            layout:
+              gridColumnEnd:
+                lg: span 4
+                md: span 6
+                xs: span 12
+            if:
+              allOf:
+                - isKind: resource
+                - isType: kubernetes-cluster
+
+catalog:
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template, Domain, User, Group]
+
+  locations:
+    # Quarkus MCP Template
+    - type: url
+      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/main/software-templates/quarkus-mcp-template/template.yaml
+    # Customer Service API
+    - type: url
+      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/main/legacy-apps/customer-service/catalog-info.yaml
+  
+  providers:
+    ## --- KEYCLOAK_CATALOG_PROVIDER ---
+    keycloakOrg:
+      default:
+        baseUrl: https://keycloak.{{ openshift_base_domain }}
+        loginRealm: backstage
+        realm: backstage
+        clientId: backstage
+        clientSecret: ${OAUTH_CLIENT_SECRET}
+        schedule:
+          frequency: { minutes: 2 }
+          timeout: { minutes: 1 }
+          initialDelay: { seconds: 15 }
+    ## --- KEYCLOAK_CATALOG_PROVIDER ---
+
+    ## --- GITLAB_CATALOG_PROVIDER ---
+    gitlab:
+      default:
+        host: {{ gitlab_hostname }}
+        branch: main
+        fallbackBranch: master
+        skipForkedRepos: true
+        entityFilename: catalog-info.yaml
+        projectPattern: \w*techdocs\w*
+        schedule:
+          frequency: { minutes: 2 }
+          timeout: { minutes: 3 }
+          initialDelay: { seconds: 15 }
+    ## --- GITLAB_CATALOG_PROVIDER ---
+
+    ## --- 3SCALE_CATALOG_PROVIDER ---
+    threeScaleApiEntity:
+      default:
+        baseUrl: ${THREESCALE_BASE_URL}
+        accessToken: ${THREESCALE_ACCESS_TOKEN}
+    ## --- 3SCALE_CATALOG_PROVIDER ---
+
+    ocm:
+      default:
+        name: 'my-ocm-hub'
+        owner: 'group:default/platform-engineers'
+        url: 'https://api.openshift.com'
+        token: ${OCM_TOKEN}
+
+## --- TECHDOCS_CONFIG ---
+techdocs:
+  builder: 'local'
+  publisher:
+    type: 'local'
+  generator:
+    runIn: local
+## --- TECHDOCS_CONFIG ---
+
+argocd:
+  appLocatorMethods:
+    - type: 'config'
+      instances:
+        - name: main
+          url: https://openshift-gitops-server-openshift-gitops.{{ openshift_base_domain }}
+          username: admin
+          password: ${ARGOCD_PASSWORD}
+kubernetes:
+  serviceLocatorMethod:
+    type: multiTenant
+  clusterLocatorMethods:
+    - clusters:
+        - name: demo-cluster
+          url: {{ openshift_api_domain }}
+          authProvider: serviceAccount
+          skipTLSVerify: true
+          serviceAccountToken: ${KUBERNETES_SA_TOKEN}
+      type: config
+  customResources:
+    - group: 'tekton.dev'
+      apiVersion: 'v1'
+      plural: 'pipelineruns'
+    - group: 'tekton.dev'
+      apiVersion: 'v1'
+      plural: 'taskruns'
+
+extraEnvVars:
+  - name: NODE_OPTIONS
+    value: --no-node-snapshot
+  - name: NODE_TLS_REJECT_UNAUTHORIZED
+    value: "0"
+
+permission:
+  enabled: true
+  rbac:
+    admin:
+      users:
+        - name: user:default/pe1
+        - name: user:default/pe2
+        - name: user:default/pe3
+    conditionalPoliciesFile: /opt/app-root/src/rbac-conditional-policies.json
+    policies-csv-file: /opt/app-root/src/rbac-policy.csv
+    policyFileReload: true
+
+scaffolder:
+  enabled: true
+  defaultAuthor:
+    name: Red Hat Developer Hub
+    email: rhdh@example.com
+  allowedActions:
+    - fetch:template
+    - publish:gitlab
+    - catalog:register
+    - catalog:write
+  templaters:
+    cookiecutter:
+      cookiecutterCommand: cookiecutter
+
+integrations:
+  gitlab:
+    - apiBaseUrl: https://gitlab-gitlab.{{ openshift_base_domain }}/api/v4
+      baseUrl: https://gitlab-gitlab.{{ openshift_base_domain }}
+      host: gitlab-gitlab.{{ openshift_base_domain }}
+      token: ${GITLAB_TOKEN}
+  
+initContainers:
+  - name: install-dynamic-plugins
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 2.5Gi
+        ephemeral-storage: 5Gi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      runAsNonRoot: true
+      seccompProfile:
+        type: "RuntimeDefault"
+    image: 'registry.redhat.io/rhdh/rhdh-hub-rhel9'
+    command:
+      - ./install-dynamic-plugins.sh
+      - /dynamic-plugins-root
+    env:
+      - name: NPM_CONFIG_USERCONFIG
+        value: /opt/app-root/src/.npmrc.dynamic-plugins
+      - name: MAX_ENTRY_SIZE
+        value: "30000000"
+    imagePullPolicy: Always
+    volumeMounts:
+      - mountPath: /dynamic-plugins-root
+        name: dynamic-plugins-root
+      - mountPath: /opt/app-root/src/dynamic-plugins.yaml
+        name: dynamic-plugins
+        readOnly: true
+        subPath: dynamic-plugins.yaml
+      - mountPath: /opt/app-root/src/.npmrc.dynamic-plugins
+        name: dynamic-plugins-npmrc
+        readOnly: true
+        subPath: .npmrc
+      - mountPath: /opt/app-root/src/.config/containers
+        name: dynamic-plugins-registry-auth
+        readOnly: true
+      - mountPath: /opt/app-root/src/.npm/_cacache
+        name: npmcacache
+    workingDir: /opt/app-root/src

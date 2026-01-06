@@ -1,0 +1,30 @@
+- name: Crear certificado TLS con openssl
+  shell: |
+    openssl req -x509 -nodes -days 365 \
+      -newkey rsa:2048 \
+      -subj "/CN={{ keycloak_hostname }}" \
+      -keyout tls.key -out tls.crt
+  args:
+    chdir: /tmp
+  register: cert_output
+
+- name: Crear namespace si no existe
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ secret_namespace }}"
+    state: present
+
+- name: Crear TLS secret en OpenShift
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ secret_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ secret_name }}"
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ lookup('file', '/tmp/tls.crt') | b64encode }}"
+        tls.key: "{{ lookup('file', '/tmp/tls.key') | b64encode }}"

@@ -1,0 +1,103 @@
+- name: Get OAuth2 token using root
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/oauth/token"
+    method: POST
+    body_format: json
+    body:
+      grant_type: "password"
+      username: "root"
+      password: "{{ gitlab_root_password }}"
+      scope: "api sudo"
+    status_code: [200, 502, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: oauth_token_result
+  until: oauth_token_result.status == 200
+  retries: 10
+  delay: 15
+
+- name: Extract OAuth token
+  ansible.builtin.set_fact:
+    oauth_access_token: "{{ oauth_token_result.json.access_token }}"
+  no_log: true
+
+- name: Get root's ID
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/user"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ oauth_access_token }}"
+    return_content: true
+    status_code: [200, 502, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: root_user_info
+  until: root_user_info.status == 200
+  retries: 10
+  delay: 15
+
+- name: Get existing Impersonation Tokens to find ID for deletion
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/users/{{ root_user_info.json.id }}/impersonation_tokens"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ oauth_access_token }}"
+    return_content: true
+    status_code: 200
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: existing_tokens
+
+- name: Find and revoke the old Impersonation Token if it exists
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/users/{{ root_user_info.json.id }}/impersonation_tokens/{{ item.id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ oauth_access_token }}"
+    status_code: 204
+    validate_certs: "{{ validate_ssl_certs }}"
+  loop: "{{ existing_tokens.json | selectattr('name', 'equalto', pat_name) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  ignore_errors: true
+
+- name: Create a new Impersonation Token for root
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/users/{{ root_user_info.json.id }}/impersonation_tokens"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ oauth_access_token }}"
+    body_format: json
+    body:
+      name: "{{ pat_name }}"
+      scopes: "{{ pat_scopes }}"
+      expires_at: "{{ pat_expires_at }}"
+    status_code: 201
+    return_content: true
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: generated_pat_result
+
+- name: "Capturar el token recién creado"
+  ansible.builtin.set_fact:
+    gitlab_pat: "{{ generated_pat_result.json.token }}"
+  no_log: true
+
+- name: "Generar un secreto aleatorio para el Webhook de GitLab"
+  ansible.builtin.set_fact:
+    gitlab_webhook_secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+  no_log: true
+
+- name: "Guardar el token de GitLab como un secreto en Vault"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: >
+      /bin/sh -c 'vault kv put secret/secrets/rhdh/gitlab token="{{ gitlab_pat }}"'
+  when: gitlab_pat is defined
+  no_log: true
+
+- name: "Guardar el secreto del Webhook de GitLab en Vault"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: >
+      /bin/sh -c 'vault kv put secret/secrets/rhdh/gitlab_webhook secret="{{ gitlab_webhook_secret }}"'
+  no_log: true
+

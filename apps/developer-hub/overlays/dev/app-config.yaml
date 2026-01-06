@@ -1,0 +1,99 @@
+app:
+  title: Red Hat Developer Hub on OpenShift
+
+backend:
+  baseUrl: https://backstage-developer-hub-backstage.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
+  listen:
+    port: 7007
+    host: 0.0.0.0
+
+# --- AUTHENTICATION ---
+## Development configuration
+# auth:
+#   providers:
+#     guest:
+#      dangerouslyAllowOutsideDevelopment: true
+
+## Configuration required to enable OpenID Connect authentification
+auth:
+  #session:
+  #  secret: ${BACKEND_SECRET}
+  environment: production
+  providers:
+    oidc:
+      production:
+        prompt: auto
+        metadataUrl: https://keycloak.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/realms/backstage/.well-known/openid-configuration
+        clientId: backstage
+        clientSecret: ${OAUTH_CLIENT_SECRET}
+        signIn:
+          resolvers:
+            - resolver: preferredUsernameMatchingUserEntityName
+
+signInPage: oidc
+
+catalog:
+  locations:
+    - type: url
+      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/components/artist-lookup-component.yaml
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template, Domain]
+  
+  providers:
+  ## --- KEYCLOAK_CATALOG_PROVIDERS ---
+    keycloakOrg:
+      default:
+        baseUrl: https://keycloak.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
+        loginRealm: backstage
+        realm: backstage
+        clientId: backstage
+        clientSecret: ${OAUTH_CLIENT_SECRET}
+        schedule:
+          frequency: { minutes: 2 }
+          timeout: { minutes: 1 }
+          initialDelay: { seconds: 15}
+  ## --- KEYCLOAK_CATALOG_PROVIDERS ---
+
+## --- KEYCLOAK ---
+extraEnvVars:
+  - name: NODE_OPTIONS
+    value: --no-node-snapshot
+  - name: NODE_TLS_REJECT_UNAUTHORIZED
+    value: "0"
+## --- KEYCLOAK ---
+
+## --- RBAC --- #
+permission:
+  enabled: true
+  rbac:
+    admin:
+      users:
+        - name: user:default/pe1
+        - name: user:default/pe2
+        - name: user:default/pe3
+    conditionalPoliciesFile: /opt/app-root/src/rbac-conditional-policies.json
+    policies-csv-file: /opt/app-root/src/rbac-policy.csv
+    policyFileReload: true
+
+scaffolder:
+  enabled: true
+  defaultAuthor:
+    name: Red Hat Developer Hub
+    email: rhdh@example.com
+  templaters:
+    cookiecutter:
+      cookiecutterCommand: cookiecutter
+
+integrations:
+  gitlab:
+    - apiBaseUrl: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/api/v4
+      baseUrl: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
+      host: gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
+      token: ${GITLAB_TOKEN}
+
+#jenkins:
+#  instances:
+#    - name: default
+#      baseUrl: https://jenkins-jenkins.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
+#      username: ${JENKINS_USER}
+#      apiKey: ${JENKINS_TOKEN}

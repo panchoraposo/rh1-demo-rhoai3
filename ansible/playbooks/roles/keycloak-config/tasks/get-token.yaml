@@ -1,0 +1,39 @@
+- name: Obtener contraseña desde Secret de OpenShift
+  command: >
+    oc -n keycloak get secret keycloak-initial-admin -o jsonpath="{.data.password}"
+  register: kc_admin_pass_raw
+  changed_when: false
+
+- name: Setear usuario y contraseña de admin Keycloak
+  set_fact:
+    keycloak_admin_user: temp-admin
+    keycloak_admin_password: "{{ kc_admin_pass_raw.stdout | b64decode }}"
+
+- name: Esperar que Keycloak esté disponible en la ruta
+  uri:
+    url: "https://keycloak.{{ openshift_base_domain }}/realms/master"
+    method: GET
+    status_code: 200
+    validate_certs: false
+  register: keycloak_ready
+  retries: 10
+  delay: 15
+  until: keycloak_ready.status == 200
+
+- name: Obtener token de administración
+  uri:
+    url: "https://{{ keycloak_hostname }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body:
+      username: "{{ keycloak_admin_user }}"
+      password: "{{ keycloak_admin_password }}"
+      client_id: "admin-cli"
+      grant_type: "password"
+    body_format: form-urlencoded
+    return_content: true
+    validate_certs: false
+  register: kc_token_response
+
+- name: Guardar token como variable
+  set_fact:
+    kc_token: "{{ kc_token_response.json.access_token }}"

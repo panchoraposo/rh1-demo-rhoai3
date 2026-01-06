@@ -1,0 +1,5 @@
+- name: Configure secrets
+  include_tasks: configure-secrets.yaml
+
+- name: Install Developer Hub operator
+  include_tasks: gitops-applications.yaml

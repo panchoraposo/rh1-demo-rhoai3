@@ -1,0 +1,83 @@
+---
+- name: Create the GitLab namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: gitlab
+        
+- name: Create Role for ArgoCD in GitLab namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: argocd-app-controller
+        namespace: gitlab
+      rules:
+        - apiGroups: [""]
+          resources: ["serviceaccounts", "pods", "services", "secrets", "configmaps", "persistentvolumeclaims"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["apps"]
+          resources: ["deployments", "statefulsets", "replicasets"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["batch"]
+          resources: ["jobs", "cronjobs"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["route.openshift.io"]
+          resources: ["routes"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- name: Create RoleBinding for ArgoCD in GitLab namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: argocd-app-controller-binding
+        namespace: gitlab
+      subjects:
+        - kind: ServiceAccount
+          name: openshift-gitops-argocd-application-controller
+          namespace: openshift-gitops
+      roleRef:
+        kind: Role
+        name: argocd-app-controller
+        apiGroup: rbac.authorization.k8s.io
+    
+- name: Create GitLab application
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'templates/gitlab-application.yaml.j2') | from_yaml }}"
+  retries: 10
+  delay: 30
+  ignore_errors: true
+  register: gitlab_result
+  until: gitlab_result is not failed
+
+- name: Esperar que los pods de GitLab estén en estado Ready
+  shell: |
+    oc wait --for=condition=Ready pod -l app=gitlab -n gitlab --timeout=300s
+  register: wait_gitlab_pods
+  retries: 10
+  delay: 15
+  until: wait_gitlab_pods.rc == 0
+
+- name: Verificar que el endpoint de GitLab esté disponible
+  uri:
+    url: "https://{{ gitlab_host }}"
+    method: GET
+    validate_certs: false
+    status_code: 200
+  register: gitlab_http_check
+  retries: 20
+  delay: 15
+  until: gitlab_http_check.status == 200
+
+- name: Confirmación de despliegue exitoso de GitLab
+  debug:
+    msg: "GitLab está desplegado y accesible en https://{{ gitlab_host }}"

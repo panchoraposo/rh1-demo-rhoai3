@@ -1,0 +1,200 @@
+---
+- name: Create namespace for Cluster Logging Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ clo_namespace }}"
+        labels:
+          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
+
+- name: Create Argo CD Application for CLO
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "cluster-logging-operator"
+        namespace: "{{ argocd_namespace }}"
+        finalizers: [ resources-finalizer.argocd.argoproj.io ]
+      spec:
+        project: "default"
+        destination:
+          namespace: "{{ clo_namespace }}"
+          server: "https://kubernetes.default.svc"
+        source:
+          repoURL: "{{ gitops_repo }}"
+          path: "apps/logging-operator/overlays/dev"
+          targetRevision: "main"
+          kustomize: {}
+        syncPolicy:
+          automated: { prune: true, selfHeal: true }
+          syncOptions: [ "CreateNamespace=false" ]
+
+- name: Wait for the Cluster Logging Operator to be ready
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ clo_namespace }}"
+    label_selectors:
+      - "operators.coreos.com/{{ clo_csv_label_name }}.{{ clo_namespace }}="
+  register: csv_status_clo
+  until: >
+    csv_status_clo.resources | length > 0 and
+    csv_status_clo.resources[0].status.phase == "Succeeded"
+  retries: 40
+  delay: 15
+  no_log: true
+  vars: { ansible_conditional_need_retry: true }
+
+- name: Create namespace for Loki Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "openshift-operators-redhat"
+        labels:
+          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
+
+- name: Create Argo CD Application for Loki Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "loki-operator"
+        namespace: "{{ argocd_namespace }}"
+        finalizers: [ resources-finalizer.argocd.argoproj.io ]
+      spec:
+        project: "default"
+        destination:
+          namespace: "openshift-operators-redhat"
+          server: "https://kubernetes.default.svc"
+        source:
+          repoURL: "{{ gitops_repo }}"
+          path: "apps/loki-operator/overlays/dev"
+          targetRevision: "main"
+          kustomize: {}
+        syncPolicy:
+          automated: { prune: true, selfHeal: true }
+          syncOptions: [ "CreateNamespace=false" ]
+
+- name: Wait for the Loki Operator Deployment to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "openshift-operators-redhat"
+    label_selectors:
+      - "app.kubernetes.io/name=loki-operator"
+  register: deploy_status_loki
+  until: >
+    deploy_status_loki.resources | length > 0 and
+    deploy_status_loki.resources[0].status.availableReplicas is defined and
+    deploy_status_loki.resources[0].status.availableReplicas > 0
+  retries: 40
+  delay: 15
+  no_log: true
+  vars: { ansible_conditional_need_retry: true }
+
+- name: Get ODF (NooBaa) default StorageClass
+  kubernetes.core.k8s_info:
+    kind: StorageClass
+    name: "{{ odf_storage_class }}"
+  register: odf_sc
+  until: "odf_sc.resources | length > 0"
+  retries: 10
+  delay: 5
+
+- name: Create ObjectBucketClaim (OBC) for Loki
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: objectbucket.io/v1alpha1
+      kind: ObjectBucketClaim
+      metadata:
+        name: "{{ odf_obc_name }}"
+        namespace: "openshift-logging"
+      spec:
+        generateBucketName: "loki"
+        storageClassName: "{{ odf_sc.resources[0].metadata.name }}"
+
+- name: Wait for ODF-generated Secret
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: "{{ odf_obc_name }}"
+    namespace: "openshift-logging"
+  register: odf_secret
+  until: "odf_secret.resources | length > 0"
+  retries: 20
+  delay: 10
+
+- name: Wait for ODF-generated ConfigMap (for bucket name/endpoint)
+  kubernetes.core.k8s_info:
+    kind: ConfigMap
+    name: "{{ odf_obc_name }}"
+    namespace: "openshift-logging"
+  register: odf_cm
+  until: "odf_cm.resources | length > 0"
+  retries: 20
+  delay: 10
+
+- name: Create the 'Loki' S3 Secret from ODF values
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "logging-loki-s3"
+        namespace: "openshift-logging"
+      stringData:
+        endpoint: "https://{{ odf_cm.resources[0].data.BUCKET_HOST }}"
+        bucketnames: "{{ odf_cm.resources[0].data.BUCKET_NAME }}"
+        access_key_id: "{{ odf_secret.resources[0].data.AWS_ACCESS_KEY_ID | b64decode }}"
+        access_key_secret: "{{ odf_secret.resources[0].data.AWS_SECRET_ACCESS_KEY | b64decode }}"
+
+- name: Create the Argo CD Application for the Logging Instance
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "logging-instance"
+        namespace: "{{ argocd_namespace }}"
+        finalizers: [ resources-finalizer.argocd.argoproj.io ]
+      spec:
+        project: "default"
+        destination:
+          namespace: "openshift-logging"
+          server: "https://kubernetes.default.svc"
+        source:
+          repoURL: "{{ gitops_repo }}"
+          path: "apps/logging-instance/overlays/dev"
+          targetRevision: "main"
+          kustomize: {}
+        syncPolicy:
+          automated: { prune: true, selfHeal: true }
+          syncOptions: [ "CreateNamespace=false" ]
+
+- name: Apply the UIPlugin for Logging
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: observability.openshift.io/v1alpha1
+      kind: UIPlugin
+      metadata:
+        name: logging
+      spec:
+        type: Logging
+        logging:
+          lokiStack:
+            name: lokistack
+          logsLimit: 50
+          timeout: 30s

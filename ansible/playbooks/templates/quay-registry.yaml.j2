@@ -1,0 +1,21 @@
+apiVersion: quay.redhat.com/v1
+kind: QuayRegistry
+metadata:
+  name: quay
+  namespace: quay
+spec:
+  configBundleSecret: quay-config-bundle
+  components:
+    - kind: route
+      managed: true
+      hostname: quay.{{ openshift_base_domain }}
+    - kind: clair
+      managed: true
+    - kind: objectstorage
+      managed: false
+    - kind: mirror
+      managed: true
+    - kind: monitoring
+      managed: true
+    - kind: database
+      managed: true

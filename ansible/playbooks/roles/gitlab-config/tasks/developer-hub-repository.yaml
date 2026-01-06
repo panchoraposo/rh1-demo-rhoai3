@@ -1,0 +1,148 @@
+- name: Obtener ID del grupo 'platform-engineers' (para operaciones de proyecto)
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/groups?search=platform-engineers"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ generated_pat_result.json.token }}"
+    return_content: true
+    status_code: [200, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: platform_engineers_group_info
+  until: platform_engineers_group_info.status == 200 and platform_engineers_group_info.json | length > 0
+  retries: 10
+  delay: 10
+
+- name: Buscar proyecto 'developer-hub' dentro del grupo
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/groups/{{ platform_engineers_group_info.json[0].id }}/projects?search=developer-hub"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ generated_pat_result.json.token }}"
+    status_code: [200, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: existing_project_lookup
+  until: existing_project_lookup.status == 200
+  retries: 10
+  delay: 10
+
+- name: Eliminar proyecto si ya existe
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/projects/{{ existing_project_lookup.json[0].id }}"
+    method: DELETE
+    headers:
+      PRIVATE-TOKEN: "{{ generated_pat_result.json.token }}"
+    status_code: [204, 404, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  when: existing_project_lookup.json | length > 0
+  register: deleted_project
+  until: deleted_project.status in [204, 404]
+  retries: 10
+  delay: 10
+
+- name: Crear proyecto 'developer-hub'
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/projects"
+    method: POST
+    headers:
+      PRIVATE-TOKEN: "{{ generated_pat_result.json.token }}"
+    body_format: json
+    body:
+      name: "developer-hub"
+      path: "developer-hub"
+      namespace_id: "{{ platform_engineers_group_info.json[0].id }}"
+      visibility: public
+      initialize_with_readme: false
+    status_code: [201, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: create_project_result
+  until: create_project_result.status == 201
+  retries: 10
+  delay: 10
+  changed_when: true
+
+- name: Guardar ID del proyecto recién creado
+  ansible.builtin.set_fact:
+    developer_hub_project_id: "{{ create_project_result.json.id }}"
+
+- name: Clonar repo desde GitHub y hacer push al nuevo proyecto
+  ansible.builtin.shell: |
+    rm -rf /tmp/developer-hub
+    git clone {{ github_repo_url }} /tmp/developer-hub
+    cd /tmp/developer-hub
+    git remote set-url origin https://oauth2:{{ generated_pat_result.json.token }}@{{ gitlab_host | regex_replace('^https?://', '') }}/platform-engineers/developer-hub.git
+    git push origin main
+      git push --tags
+  environment:
+    GIT_SSL_NO_VERIFY: "{{ 'true' if not validate_ssl_certs else 'false' }}"
+  args:
+    executable: /bin/bash
+  register: git_clone_push_result
+  until: git_clone_push_result.rc == 0
+  retries: 10
+  delay: 10
+  changed_when: git_clone_push_result.rc == 0
+
+- name: Eliminar repo local si existe
+  ansible.builtin.file:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}"
+    state: absent
+
+- name: Clonar repo GitLab
+  ansible.builtin.git:
+    repo: "https://oauth2:{{ generated_pat_result.json.token }}@{{ gitlab_host | regex_replace('^https?://', '') }}/platform-engineers/developer-hub.git"
+    dest: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}"
+    version: main
+    force: yes
+  register: git_clone_result
+  until: git_clone_result is succeeded
+  retries: 10
+  delay: 10
+
+- name: Obtener secreto de OAuth Client desde OpenShift
+  kubernetes.core.k8s_info:
+    kind: Secret
+    namespace: backstage
+    name: keycloak-client-secret
+  register: oauth_secret
+  until: oauth_secret.resources is defined and oauth_secret.resources | length > 0
+  retries: 20
+  delay: 10
+
+- name: Setear valor decodificado de clientSecret para OAuth
+  ansible.builtin.set_fact:
+    oauth_client_secret: "{{ oauth_secret.resources[0].data.clientSecret | b64decode }}"
+
+- name: Renderizar archivo app-config.yaml
+  ansible.builtin.template:
+    src: templates/app-config.yaml.j2
+    dest: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub/overlays/dev/app-config.yaml"
+    
+- name: Renderizar el template.yaml de Quarkus con los valores del entorno
+  ansible.builtin.template:
+    src: templates/quarkus-template.yaml.j2
+    dest: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/software-templates/quarkus-mcp-template/template.yaml"
+    mode: '0644'
+    lstrip_blocks: false
+    trim_blocks: false
+
+- name: Commit de cambios
+  ansible.builtin.shell: |
+    cd {{ local_repo_path | default('/tmp/local_developer_hub_repo') }}
+    git config user.name "Ansible Automation"
+    git config user.email "ansible-automation@{{ gitlab_host | regex_replace('^https?://', '') }}"
+    git add apps/developer-hub/overlays/dev/app-config.yaml
+    git add software-templates/quarkus-mcp-template/template.yaml
+
+    if ! git diff --cached --quiet; then
+      git commit -m "Update app-config.yaml and template.yaml for dev env by Ansible"
+      git push origin main
+    else
+      echo "No changes to commit"
+    fi
+  args:
+    executable: /bin/bash
+  register: git_commit_push_result
+  changed_when: "'No changes to commit' not in git_commit_push_result.stdout"
+  until: git_commit_push_result.rc == 0
+  retries: 10
+  delay: 10

@@ -1,0 +1,17 @@
+- name: Create PAT (root user)
+  include_tasks: create-pat.yaml
+
+- name: Configure user admin
+  include_tasks: user-admin.yaml
+
+- name: Create groups and users
+  include_tasks: create-groups-users.yaml
+
+- name: Add users to groups
+  include_tasks: add-users-to-groups.yaml
+
+- name: Clone repository and render values
+  include_tasks: developer-hub-repository.yaml
+
+- name: Configure Dev Spaces
+  include_tasks: configure-devspaces.yaml

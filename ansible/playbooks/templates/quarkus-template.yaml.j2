@@ -1,0 +1,243 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: quarkus-mcp-template
+  title: Quarkus MCP Template
+  description: Create a simple MCP Server using Quarkus with Argo CD
+  tags:
+    - recommended
+    - java
+    - quarkus
+    - maven
+
+spec:
+  owner: developers
+  type: service
+
+  parameters:
+    - title: Provide Information for Application
+      required:
+        - component_id
+        - java_package_name
+      properties:
+        component_id:
+          title: Name
+          type: string
+          description: Unique name of the component
+          default: customer-service-mcp
+          ui:field: EntityNamePicker
+          maxLength: 25
+        group_id:
+          title: Group Id
+          type: string
+          default: com.neuralbank
+          description: Maven Group Id
+        artifact_id:
+          title: Artifact Id
+          type: string
+          default: customer-service-mcp
+          description: Maven Artifact Id
+        java_package_name:
+          title: Java Package Name
+          default: com.neuralbank
+          type: string
+          description: Name for the Java package. eg (com.neuralbank.blah)
+        description:
+          title: Description
+          type: string
+          default: A cool Quarkus MCP Server!
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the component
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds:
+              - Group
+          default: group:default/developers
+
+    - title: Provide Image Registry Information
+      required:
+        - image_registry
+      properties:
+        image_registry:
+          title: Image Registry
+          type: string
+          enum:
+            - OpenShift
+            - Quay
+      dependencies:
+        image_registry:
+          oneOf:
+            - properties:
+                image_registry:
+                  enum:
+                    - OpenShift
+                image_host:
+                  title: Image Host
+                  type: string
+                  description: Host for storing image
+                  default: image-registry.openshift-image-registry.svc:5000
+                image_tag:
+                  title: Image Tag
+                  default: latest
+                  type: string
+                  description: Build Image tag
+            - properties:
+                image_registry:
+                  enum:
+                    - Quay
+                image_host:
+                  title: Image Host
+                  type: string
+                  description: Host for storing image
+                  default: {{ quay_host }}
+                image_organization:
+                  title: Quay Organization
+                  type: string
+                  description: The organization in Quay where the image will be stored.
+                  default: quayadmin
+                image_password:
+                  title: Password
+                  type: string
+                  description: Your Quay password
+                  ui:field: Secret
+                image_tag:
+                  title: Image Tag
+                  default: latest
+                  type: string
+                  description: Build Image tag
+
+    - title: Application repository Information
+      required:
+        - repo
+        - gitlab_group
+      properties:
+        repo:
+          title: Repository Location
+          type: object
+          properties:
+            host:
+              title: Repo Host
+              type: string
+              description: Your SCM host
+              default: {{ gitlab_host | to_json }}
+              enum:
+                - {{ gitlab_host | to_json }}
+        gitlab_group:
+          title: GitLab Group
+          type: string
+          default: developers
+          description: The name of the GitLab group where the repo will be created (e.g. 'developers').
+
+  steps:
+    - id: template
+      name: Fetch Skeleton + Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+{% raw %}
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          namespace: ${{ parameters.component_id }}-dev
+          group_id: ${{ parameters.group_id }}
+          artifact_id: ${{ parameters.artifact_id }}
+          java_package_name: ${{ parameters.java_package_name }}
+          owner: ${{ parameters.owner }}
+          gitlab_group: ${{ parameters.gitlab_group }}
+          cluster: ${{ parameters.repo.host }}
+          host: ${{ parameters.repo.host }}
+          destination: ${{ parameters.gitlab_group }}/${{ parameters.component_id }}
+{% endraw %}
+          image_organization: 'quayadmin'
+          port: 8080
+          gitops_namespace: openshift-gitops
+          cluster_subdomain: {{ openshift_base_domain }}
+{% raw %}
+        targetPath: ./${{ parameters.gitlab_group }}-${{ parameters.component_id }}
+{% endraw %}
+
+    - id: publish
+      name: Publish
+      action: publish:gitlab
+      input:
+{% raw %}
+        repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.gitlab_group }}&repo=${{ parameters.component_id }}"
+        repoVisibility: public
+        defaultBranch: main
+        sourcePath: ./${{ parameters.gitlab_group }}-${{ parameters.component_id }}
+{% endraw %}
+
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+{% raw %}
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: "/catalog-info.yaml"
+{% endraw %}
+
+    - id: template-gitops-deployment
+      name: Generating Deployment Resources
+      action: fetch:template
+      input:
+        url: ./manifests
+        copyWithoutTemplating: []
+        values:
+{% raw %}
+          component_id: ${{ parameters.component_id }}
+          source_repository_gitops: https://${{ parameters.repo.host }}/${{ parameters.gitlab_group }}/${{ parameters.component_id }}-gitops.git
+          source_repository: https://${{ parameters.repo.host }}/${{ parameters.gitlab_group }}/${{ parameters.component_id }}.git
+          namespace: ${{ parameters.component_id }}-dev
+          image_registry: ${{ parameters.image_registry }}
+          image_host: ${{ parameters.image_host }}
+          image_password: ${{ secrets.image_password }}
+          image_name: ${{ parameters.component_id }}
+          image_tag: ${{ parameters.image_tag }}
+          repository_host: ${{ parameters.repo.host }}
+{% endraw %}
+          image_organization: 'quayadmin'
+          gitops_namespace: openshift-gitops
+          gitops_project: default
+          owner: developers
+          cluster_subdomain: {{ openshift_base_domain }}
+          port: 8080
+{% raw %}
+        targetPath: ./${{ parameters.gitlab_group }}-${{ parameters.component_id }}-gitops
+{% endraw %}
+
+    - id: publish-gitops
+      name: Publishing to Resource Repository
+      action: publish:gitlab
+      input:
+{% raw %}
+        repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.gitlab_group }}&repo=${{ parameters.component_id }}-gitops"
+        sourcePath: ./${{ parameters.gitlab_group }}-${{ parameters.component_id }}-gitops
+{% endraw %}
+        repoVisibility: public
+        defaultBranch: main
+
+    - id: create-argocd-resources
+      name: Create Argo CD Resources
+      action: argocd:create-resources
+      input:
+{% raw %}
+        appName: ${{ parameters.component_id }}-bootstrap
+{% endraw %}
+        argoInstance: main
+        namespace: openshift-gitops
+{% raw %}
+        repoUrl: https://${{ parameters.repo.host }}/${{ parameters.gitlab_group }}/${{ parameters.component_id }}-gitops.git
+{% endraw %}
+        path: 'argocd/'
+
+  output:
+    links:
+      - title: Source Code Repository
+{% raw %}
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open Component in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+{% endraw %}

@@ -1,0 +1,176 @@
+---
+- name: "Crear un ObjectBucketClaim para el bucket de Quay"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: objectbucket.io/v1alpha1
+      kind: ObjectBucketClaim
+      metadata:
+        name: quay-s3-bucket-claim
+        namespace: "{{ quay_namespace }}"
+      spec:
+        storageClassName: openshift-storage.noobaa.io
+        bucketName: "{{ s3_quay_bucket_name }}"
+
+- name: "Esperar a que el ObjectBucketClaim esté en estado 'Bound'"
+  kubernetes.core.k8s_info:
+    api_version: objectbucket.io/v1alpha1
+    kind: ObjectBucketClaim
+    name: quay-s3-bucket-claim
+    namespace: "{{ quay_namespace }}"
+  register: obc_info
+  until: >
+    obc_info.resources | length > 0 and
+    obc_info.resources[0].status is defined and
+    obc_info.resources[0].status.phase == 'Bound'
+  retries: 40
+  delay: 5
+
+- name: "Esperar y obtener el ConfigMap del bucket S3"
+  kubernetes.core.k8s_info:
+    kind: ConfigMap
+    name: "quay-s3-bucket-claim"
+    namespace: "{{ quay_namespace }}"
+  register: ob_cm_info
+  until: >
+    ob_cm_info.resources | length > 0 and
+    ob_cm_info.resources[0].data is defined and
+    'BUCKET_NAME' in ob_cm_info.resources[0].data
+  retries: 20
+  delay: 5
+
+- name: "Esperar y obtener el Secret del bucket S3"
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: "quay-s3-bucket-claim"
+    namespace: "{{ quay_namespace }}"
+  register: ob_secret_info
+  until: >
+    ob_secret_info.resources | length > 0 and
+    ob_secret_info.resources[0].data is defined and
+    'AWS_ACCESS_KEY_ID' in ob_secret_info.resources[0].data
+  retries: 20
+  delay: 5
+
+- name: "Setear variables con los datos del bucket para Quay"
+  ansible.builtin.set_fact:
+    quay_s3_bucket_name: "{{ ob_cm_info.resources[0].data.BUCKET_NAME }}"
+    quay_s3_endpoint_url: "{{ ob_cm_info.resources[0].data.BUCKET_HOST }}"
+    quay_s3_access_key: "{{ ob_secret_info.resources[0].data.AWS_ACCESS_KEY_ID | b64decode }}"
+    quay_s3_secret_key: "{{ ob_secret_info.resources[0].data.AWS_SECRET_ACCESS_KEY | b64decode }}"
+
+- name: "Renderizar el archivo config.yaml de Quay"
+  ansible.builtin.template:
+    src: templates/config.yaml.j2
+    dest: /tmp/quay-config.yaml
+
+- name: "Crear el Secret 'quay-config-bundle' con la configuración"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: quay-config-bundle
+        namespace: "{{ quay_namespace }}"
+      type: Opaque
+      stringData:
+        "config.yaml": "{{ lookup('file', '/tmp/quay-config.yaml') }}"
+
+- name: "Crear aplicación ArgoCD para la instancia de Quay"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata: { name: quay-instance, namespace: openshift-gitops }
+      spec:
+        project: default
+        source: { repoURL: "{{ gitops_repo }}", targetRevision: main, path: apps/quay-instance/overlays/dev }
+        destination: { server: https://kubernetes.default.svc }
+        syncPolicy: { automated: { prune: true, selfHeal: true } }
+
+- name: "Obtener la información de la ruta de Quay"
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "quay-quay"
+    namespace: "{{ quay_namespace }}"
+  register: quay_route
+  until: quay_route.resources | list | length > 0
+  retries: 20
+  delay: 10
+
+- name: "Guardar la URL de Quay en una variable"
+  ansible.builtin.set_fact:
+    quay_url: "{{ quay_route.resources[0].spec.host }}"
+
+- name: "Esperar a que la instancia de QuayRegistry esté lista"
+  kubernetes.core.k8s_info:
+    api_version: quay.redhat.com/v1
+    kind: QuayRegistry
+    name: quay
+    namespace: "{{ quay_namespace }}"
+  register: quay_status
+  until: >
+    quay_status.resources | length > 0 and
+    quay_status.resources[0].status.conditions is defined and
+    (quay_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Available') | list | length > 0) and
+    (quay_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Available') | list)[0].status == "True"
+  retries: 120
+  delay: 15
+
+- name: "Inicializar el superusuario y obtener un token de acceso"
+  ansible.builtin.uri:
+    url: "https://{{ quay_url }}/api/v1/user/initialize"
+    method: POST
+    validate_certs: false
+    body_format: json
+    body:
+      username: "{{ quay_admin_user }}"
+      password: "{{ quay_admin_password }}"
+      email: "{{ quay_org_email }}"
+      access_token: true
+    status_code: [200, 201, 400]
+  register: init_user_result
+  failed_when: init_user_result.status == 400 and 'Cannot re-initialize application' not in (init_user_result.json.error_message | default(''))
+  retries: 10
+  delay: 15
+  no_log: false
+
+- name: "Capturar el token de acceso administrativo"
+  ansible.builtin.set_fact:
+    quay_api_token: "{{ init_user_result.json.access_token }}"
+  when: init_user_result.json.access_token is defined
+  no_log: false
+
+- name: "🤖 Crear cuenta de robot 'rhdh-reader' para Developer Hub"
+  ansible.builtin.uri:
+    url: "https://{{ quay_url }}/api/v1/user/robots/rhdh-reader"
+    method: PUT
+    validate_certs: false
+    headers:
+      Authorization: "Bearer {{ quay_api_token }}"
+    body_format: json
+    body: {}
+    status_code: [200, 201]
+  register: robot_account
+
+- name: "Capturar el token del robot de RHDH"
+  ansible.builtin.set_fact:
+    rhdh_robot_username: "{{ robot_account.json.name }}"
+    rhdh_robot_token: "{{ robot_account.json.token }}"
+  no_log: true
+  when: robot_account.json.token is defined
+
+- name: "Añadir el token del robot de RHDH al Secret 'backstage-env'"
+  kubernetes.core.k8s:
+    state: patched
+    kind: Secret
+    api_version: v1
+    name: backstage-env
+    namespace: "{{ rhdh_namespace }}"
+    definition:
+      stringData:
+        QUAY_TOKEN: "{{ rhdh_robot_token }}"
+

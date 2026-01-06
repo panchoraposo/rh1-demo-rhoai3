@@ -1,0 +1,57 @@
+---
+- name: "Crear ClusterRole para gestionar los CRs de External Secrets"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: eso-manager-role
+      rules:
+        - apiGroups: ["external-secrets.io"]
+          resources: ["*"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["external-secrets.io"]
+          resources: ["*/status"]
+          verbs: ["get", "update", "patch"]
+        - apiGroups: [""]
+          resources: ["events"]
+          verbs: ["create", "patch"]
+
+- name: "Crear ClusterRoleBinding para vincular el rol al ServiceAccount del Operador"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: eso-manager-rolebinding
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ eso_sa_name }}"
+          namespace: "{{ eso_namespace }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: eso-manager-role
+
+- name: "Crear política en Vault para RHDH"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: >
+      /bin/sh -c 'echo "path \"secret/data/secrets/rhdh/*\" { capabilities = [\"read\"] }" | vault policy write rhdh-secrets -'
+      
+- name: "Corregir el rol en Vault para el ServiceAccount de External Secrets"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: >
+      /bin/sh -c 'vault write auth/kubernetes/role/external-secrets
+      bound_service_account_names=external-secrets-operator-controller-manager
+      bound_service_account_namespaces={{ vault_namespace }}
+      policies=rhdh-secrets
+      ttl=24h'
+  environment:
+    VAULT_TOKEN: "{{ vault_root_token }}"
+    VAULT_ADDR: "http://127.0.0.1:8200"

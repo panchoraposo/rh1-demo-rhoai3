@@ -1,0 +1,33 @@
+---
+- name: Crear aplicación ArgoCD para Keycloak Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: keycloak-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: main
+          path: apps/keycloak-operator/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: keycloak
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+    
+- name: Esperar que el operador Keycloak esté disponible
+  shell: |
+    oc -n keycloak get deployment rhbk-operator
+  register: operator_ready
+  retries: 20
+  delay: 10
+  until: operator_ready.rc == 0

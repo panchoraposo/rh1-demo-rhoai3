@@ -1,0 +1,5 @@
+- name: Quay Operator
+  include_tasks: quay-operator.yaml
+
+- name: Quay Instance
+  include_tasks: quay-instance.yaml

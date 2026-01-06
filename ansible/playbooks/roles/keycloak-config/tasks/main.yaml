@@ -1,0 +1,23 @@
+- name: Obtener token de administrador
+  include_tasks: get-token.yaml
+
+- name: Importar realm si no existe
+  include_tasks: import-realm.yaml
+
+- name: Crear usuarios developers y asociar grupo
+  include_tasks: create-users.yaml
+  vars:
+    group_name: developers
+    user_list: "{{ users_developers }}"
+
+- name: Crear usuarios platform-engineers y asociar grupo
+  include_tasks: create-users.yaml
+  vars:
+    group_name: platform-engineers
+    user_list: "{{ users_platform }}"
+
+- name: Regenerar secret del cliente backstage
+  include_tasks: client-secret.yaml
+
+- name: Crear secret en OpenShift con client secret
+  include_tasks: secret-ocp.yaml

@@ -1,0 +1,83 @@
+---
+- name: Create namespace for the OCO Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ oco_namespace }}"
+
+- name: Create the Argo CD Application for the Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "cluster-observability-operator"
+        namespace: "{{ argocd_namespace }}"
+        finalizers:
+          - resources-finalizer.argocd.argoproj.io
+      spec:
+        project: "default"
+        destination:
+          namespace: "{{ oco_namespace }}"
+          server: "https://kubernetes.default.svc"
+        source:
+          repoURL: "{{ gitops_repo }}"
+          path: "apps/cluster-observability-operator/overlays/dev"
+          targetRevision: "main"
+          kustomize: {}
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=false
+
+- name: Wait for the Cluster Observability Operator Deployment to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ oco_namespace }}"
+    label_selectors:
+      - "app.kubernetes.io/name=observability-operator"
+  register: deploy_status
+  until: >
+    deploy_status.resources | length > 0 and
+    deploy_status.resources[0].status.availableReplicas is defined and
+    deploy_status.resources[0].status.availableReplicas > 0
+  retries: 40
+  delay: 15
+  no_log: true
+  vars:
+    ansible_conditional_need_retry: true
+
+- name: Create the Argo CD Application for the Instance
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: "ui-plugin"
+        namespace: "{{ argocd_namespace }}"
+        finalizers:
+          - resources-finalizer.argocd.argoproj.io
+      spec:
+        project: "default"
+        destination:
+          namespace: "{{ observability_namespace }}"
+          server: "https://kubernetes.default.svc"
+        source:
+          repoURL: "{{ gitops_repo }}"
+          path: "apps/ui-plugin/overlays/dev"
+          targetRevision: "main"
+          kustomize: {}
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=false

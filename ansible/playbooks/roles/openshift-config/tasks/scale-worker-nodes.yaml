@@ -1,0 +1,40 @@
+---
+- name: "Descubrir TODAS las MachineSets"
+  kubernetes.core.k8s_info:
+    api_version: machine.openshift.io/v1beta1
+    kind: MachineSet
+    namespace: openshift-machine-api
+  register: all_machinesets
+
+- name: "Filtrar solo MachineSets de 'worker' (excluyendo 'gpu')"
+  ansible.builtin.set_fact:
+    worker_machinesets: >
+      {{ all_machinesets.resources | 
+         selectattr('metadata.name', 'contains', 'worker') | 
+         rejectattr('metadata.name', 'contains', 'gpu') | 
+         list }}
+
+- name: "Fallar si no se encuentra ninguna MachineSet de worker estándar"
+  ansible.builtin.fail:
+    msg: "Error: No se encontró ninguna MachineSet de worker estándar (se encontraron 0)."
+  when: worker_machinesets | length == 0
+
+- name: "Seleccionar la PRIMERA MachineSet estándar de la lista"
+  ansible.builtin.set_fact:
+    target_machineset_name: "{{ worker_machinesets[0].metadata.name }}"
+
+- name: "Mostrar la MachineSet que se va a escalar"
+  ansible.builtin.debug:
+    msg: "Se escalará la siguiente MachineSet a {{ desired_replicas }} réplica(s): {{ target_machineset_name }}"
+
+- name: "Escalar la MachineSet a {{ desired_replicas }} réplicas (usando patch)"
+  kubernetes.core.k8s:
+    state: patched
+    api_version: machine.openshift.io/v1beta1
+    kind: MachineSet
+    name: "{{ target_machineset_name }}"
+    namespace: openshift-machine-api
+    definition:
+      spec:
+        replicas: "{{ desired_replicas }}"
+  register: patch_result

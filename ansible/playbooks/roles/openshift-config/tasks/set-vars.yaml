@@ -1,0 +1,20 @@
+---
+- name: Get OpenShift Infrastructure config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Infrastructure
+    name: cluster
+  register: infra_config
+      
+- name: Get OpenShift DNS config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: DNS
+    name: cluster
+  register: dns_config
+
+- name: Set dynamic cluster variables
+  set_fact:
+    openshift_api_domain: "{{ infra_config.resources[0].status.apiServerURL }}"
+    openshift_base_domain: "apps.{{ dns_config.resources[0].spec.baseDomain }}"
+    cluster_base_domain: "{{ dns_config.resources[0].spec.baseDomain }}"

@@ -1,0 +1,8 @@
+- name: Configure TLS certificates
+  include_tasks: tls-certificates.yaml
+
+- name: Install Red Hat Build of Keycloak operator
+  include_tasks: keycloak-operator.yaml
+
+- name: Deploy Keycloak instance
+  include_tasks: keycloak-instance.yaml

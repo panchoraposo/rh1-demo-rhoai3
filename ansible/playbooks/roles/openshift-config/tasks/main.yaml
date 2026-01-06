@@ -1,0 +1,6 @@
+---
+- name: Set env vars
+  include_tasks: set-vars.yaml
+
+- name: Scale worker nodes
+  include_tasks: scale-worker-nodes.yaml

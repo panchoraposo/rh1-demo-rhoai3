@@ -1,0 +1,238 @@
+---
+- name: "Grant Argo CD permissions to manage MutatingWebhooks"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: argocd-webhook-manager
+        rules:
+        - apiGroups: ["admissionregistration.k8s.io"]
+          resources: ["mutatingwebhookconfigurations"]
+          verbs: ["create", "patch", "get", "list", "watch", "delete"]
+      
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: argocd-webhook-manager-binding
+        subjects:
+          - kind: ServiceAccount
+            name: openshift-gitops-argocd-application-controller
+            namespace: openshift-gitops
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: argocd-webhook-manager
+
+- name: "Permitir a Vault realizar TokenReviews"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: vault-token-reviewer-binding
+      subjects:
+        - kind: ServiceAccount
+          name: vault
+          namespace: vault
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:auth-delegator
+
+- name: "Crear aplicación ArgoCD para instalar Helm Chat de Vault"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: vault
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: https://helm.releases.hashicorp.com
+          chart: vault
+          targetRevision: 0.30.1
+          helm:
+            values: |
+              global:
+                openshift: true
+              server:
+                dev:
+                  enabled: true
+                image:
+                  repository: docker.io/hashicorp/vault
+              injector:
+                enabled: true
+                image:
+                  repository: docker.io/hashicorp/vault-k8s
+              ui:
+                enabled: true
+              
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: vault
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+        ignoreDifferences:
+        - group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          name: vault-agent-injector-cfg
+          jsonPointers:
+          - /webhooks/0/clientConfig/caBundle
+
+- name: "Crear aplicación ArgoCD para instalar el Vault Secrets Operator"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: vault-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source: { repoURL: "{{ gitops_repo }}", targetRevision: main, path: apps/vault-operator/overlays/dev }
+        destination: { server: https://kubernetes.default.svc }
+        syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
+
+- name: "Esperar a que el CRD de VaultConnection esté disponible"
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: vaultconnections.secrets.hashicorp.com
+  register: vso_crd_info
+  until: "vso_crd_info.resources | length > 0"
+  retries: 30
+  delay: 10
+
+- name: "Esperar a que Argo CD sincronice y deje saludable la app de Vault"
+  kubernetes.core.k8s_info:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: vault
+    namespace: openshift-gitops
+  register: vault_app_status
+  until: >
+    vault_app_status.resources | length > 0 and
+    vault_app_status.resources[0].status.sync.status == "Synced" and
+    vault_app_status.resources[0].status.health.status == "Healthy"
+  retries: 40
+  delay: 15
+  changed_when: false
+  vars:
+    ansible_pylib_issue_374_workaround: true
+
+- name: "Esperar a que la configuración del webhook del inyector exista"
+  kubernetes.core.k8s_info:
+    api_version: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+    name: vault-agent-injector-cfg
+  register: webhook_cfg
+  until: "webhook_cfg.resources | length > 0"
+  retries: 30
+  delay: 10
+
+- name: "Esperar a que el pod de Vault esté listo"
+  kubernetes.core.k8s_info:
+    kind: Pod
+    name: vault-0
+    namespace: "{{ vault_namespace }}"
+  register: vault_pod_info
+  until: "vault_pod_info.resources | length > 0 and (vault_pod_info.resources[0].status.phase == 'Running')"
+  retries: 20
+  delay: 10
+
+- name: "Obtener logs del pod de Vault para extraer el token raíz"
+  ansible.builtin.command: "oc logs vault-0 -n {{ vault_namespace }}"
+  register: vault_logs
+  changed_when: false
+
+- name: "Extraer el token raíz de los logs de Vault"
+  ansible.builtin.set_fact:
+    vault_root_token: "{{ (vault_logs.stdout | regex_search('Root Token: (.+)', '\\1') | default([])) | first | default('') }}"
+
+- name: "Validar que se encontró el token raíz"
+  ansible.builtin.fail:
+    msg: "No se pudo encontrar el token raíz en los logs del pod de Vault."
+  when: vault_root_token == ""
+
+- name: "Crear un Secret para el ServiceAccount de Vault"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: vault-sa-token
+        namespace: "{{ vault_namespace }}"
+        annotations:
+          kubernetes.io/service-account.name: vault
+      type: kubernetes.io/service-account-token
+
+- name: "Esperar a que el Secret del SA de Vault sea populado con el token"
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: vault-sa-token
+    namespace: "{{ vault_namespace }}"
+  register: vault_token_secret_info
+  until: >
+    vault_token_secret_info.resources | length > 0 and
+    vault_token_secret_info.resources[0].data.token is defined and
+    vault_token_secret_info.resources[0].data.token != ""
+  retries: 20
+  delay: 5
+
+- name: "Extraer el token y el certificado CA del SA de Vault"
+  ansible.builtin.set_fact:
+    vault_sa_token: "{{ vault_token_secret_info.resources[0].data.token | b64decode }}"
+    k8s_ca_cert: "{{ vault_token_secret_info.resources[0].data['ca.crt'] | b64decode }}"
+
+- name: "Obtener la URL del host de Kubernetes desde dentro del pod de Vault"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: "/bin/sh -c 'echo https://$KUBERNETES_PORT_443_TCP_ADDR:443'"
+  register: k8s_host_output
+
+- name: "Verificar si el auth method de Kubernetes ya existe"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: "vault auth list -format=json"
+  environment:
+    VAULT_TOKEN: "{{ vault_root_token }}"
+    VAULT_ADDR: "http://127.0.0.1:8200"
+  register: vault_auth_list
+  changed_when: false
+
+- name: "Habilitar el auth method de Kubernetes si no existe"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: "vault auth enable kubernetes"
+  environment:
+    VAULT_TOKEN: "{{ vault_root_token }}"
+    VAULT_ADDR: "http://127.0.0.1:8200"
+  when: "'kubernetes/' not in (vault_auth_list.stdout | from_json)"
+
+- name: "Configurar el backend de autenticación de Kubernetes en Vault"
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: >
+      /bin/sh -c 'vault write auth/kubernetes/config
+      token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+      kubernetes_host="https://kubernetes.default.svc"
+      kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
+  environment:
+    VAULT_TOKEN: "{{ vault_root_token }}"
+    VAULT_ADDR: "http://127.0.0.1:8200"

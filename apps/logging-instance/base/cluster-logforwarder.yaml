@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: collector
+  namespace: openshift-logging
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: collector-cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: collector
+    namespace: openshift-logging
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: instance
+  namespace: openshift-logging
+  annotations:
+    observability.openshift.io/tech-preview-otlp-output: "enabled"
+spec:
+  serviceAccount:
+    name: collector
+  outputs:
+    - name: default-loki
+      type: lokiStack
+      lokiStack:
+        target:
+          name: lokistack
+          namespace: openshift-logging
+        dataModel: Viaq
+        authentication:
+          token:
+            from: serviceAccount
+      tls:
+        ca:
+          key: service-ca.crt
+          configMapName: openshift-service-ca.crt
+  pipelines:
+    - name: app-logs
+      inputRefs:
+        - application
+      outputRefs:
+        - default-loki

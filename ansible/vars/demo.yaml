@@ -1,0 +1,217 @@
+# --- OpenShift ---
+desired_replicas: 3
+
+# --- GitOps ---
+output_file: /tmp/gitops-subscription.yaml
+gitops_channel: latest
+gitops_repo: "https://github.com/panchoraposo/rh1-demo-rhoai3"
+gitops_repo_path: "/tmp/developer-hub"
+gitops_gitlab_repo_path: "apps/gitlab/chart"
+argocd_controller_sa: openshift-gitops-argocd-application-controller
+argocd_namespace: openshift-gitops
+
+# -- Gitlab ---
+gitlab_host: gitlab-gitlab.{{ openshift_base_domain }}
+gitlab_hostname: "gitlab-gitlab.{{ openshift_base_domain }}"
+gitlab_release_name: gitlab
+gitlab_chart_name: gitlab/gitlab
+gitlab_chart_repo: https://charts.gitlab.io
+gitlab_helm_values_file: /tmp/gitlab-oidc-values.yaml
+gitlab_config_root_password: backstage
+gitlab_users_password: backstage
+gitlab_root_password: backstage
+gitlab_admin_token: abc12345678
+git_user: "Pancho Raposo"
+git_email: "tu_correo@example.com"
+rendered_values_file: "/tmp/gitlab-values-rendered.yaml"
+helm_render_dir: "/tmp/gitlab-rendered"
+pat_name: "ansible-generated-pat"
+pat_name_rhdh: "ansible-generated-pat-rhdh"
+pat_scopes: ["api", "sudo"]
+github_repo_url: "https://github.com/panchoraposo/rh1-demo-rhoai3"
+new_gitlab_repo_name: "developer-hub"
+pat_expires_at: "2026-12-31"
+local_repo_path: /tmp/gitlab-rhdh
+target_overlay_path: /tmp/gitlab-rhdh/apps/developer-hub/overlays/dev/app-config.yaml
+gitlab_redirect_uri: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }}/broker/gitlab/endpoint"
+rhdh_namespace: "backstage"
+gitlab_namespace: "gitlab"
+grant_admin_privileges: true
+
+# Gitlab: users and groups
+additional_groups:
+  - name: "platform-engineers"
+    path: "platform-engineers"
+    users:
+      - username: "pe1"
+        fullName: "PlatformEngineer One"
+      - username: "pe2"
+        fullName: "PlatformEngineer Two"
+      - username: "pe3"
+        fullName: "PlatformEngineer Three"
+    visibility: public
+  - name: "developers"
+    path: "developers"
+    users:
+      - username: "dev1"
+        fullName: "Developer One"
+      - username: "dev2"
+        fullName: "Developer Two"
+      - username: "dev3"
+        fullName: "Developer Three"
+    visibility: public
+
+gitlab_idp_alias: gitlab
+gitlab_scopes: "openid profile email"
+output_path: "./catalog/entities"
+location_output_path: "/tmp/gitlab-users-location.yaml"
+
+gitlab_users:
+  developers:
+    - dev1
+    - dev2
+    - dev3
+  platform-engineers:
+    - pe1
+    - pe2
+    - pe3
+
+default_owner_group: "developers"
+
+keycloak_auth_url: "https://{{ keycloak_hostname }}/auth"
+idp_alias: "gitlab"
+gitlab_email_domain: "example.com"
+gitlab_oauth_client_id: "{{ gitlab_oauth.json.application_id }}"
+gitlab_oauth_client_secret: "{{ gitlab_oauth.json.secret }}"
+
+# --- General ---
+validate_ssl_certs: false
+backstage_image: registry.redhat.io/rhdh/rhdh-hub-rhel9
+
+# --- Keycloak ---
+keycloak_hostname: keycloak.{{ openshift_base_domain }}
+keycloak_realm: backstage
+keycloak_client_id: backstage
+keycloak_client_secret: ""
+gitlab_client_id: gitlab
+gitlab_client_secret: ""
+secret_name: "rhbk-tls-secret"
+secret_namespace: "keycloak"
+keycloak_issuer_url: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }}"
+keycloak_authorization_endpoint: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }}/protocol/openid-connect/auth"
+keycloak_token_endpoint: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }}/protocol/openid-connect/token"
+keycloak_userinfo_endpoint: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }}/protocol/openid-connect/userinfo"
+keycloak_jwks_uri: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }}/protocol/openid-connect/certs"
+keycloak_gitlab_client_secret: "{{ lookup('env', 'KEYCLOAK_GITLAB_CLIENT_SECRET') }}"
+keycloak_gitlab_client_id: "gitlab"
+gitlab_base_url: "https://{{ gitlab_host }}"
+common_user_password: "backstage"
+
+developers_user_ids: [101, 102]
+platform_user_ids: [201, 202]
+users_developers:
+  - username: dev1
+    email: dev1@rhdh.com
+    first_name: Dev
+    last_name: One
+    password: '{{ common_user_password }}'
+  - username: dev2
+    email: dev2@rhdh.com
+    first_name: Dev
+    last_name: Two
+    password: '{{ common_user_password }}'
+  - username: dev3
+    email: dev3@rhdh.com
+    first_name: Dev
+    last_name: Three
+    password: '{{ common_user_password }}'
+users_platform:
+  - username: pe1
+    email: pe1@rhdh.com
+    first_name: Platform-Engineer
+    last_name: One
+    password: '{{ common_user_password }}'
+  - username: pe2
+    email: pe2@rhdh.com
+    first_name: Platform-Engineer
+    last_name: Two
+    password: '{{ common_user_password }}'
+  - username: pe3
+    email: pe3@rhdh.com
+    first_name: Platform-Engineer
+    last_name: Three
+    password: '{{ common_user_password }}'
+realm_json_path: /tmp/developer-hub/backstage-realm.json
+
+# --- Vault & External Secrets ---
+vault_namespace: vault
+vault_app_path: apps/vault
+argo_cd_ns: openshift-gitops
+vault_pod_name: "vault-0"
+vault_revision: 0.30.0
+scc_name: anyuid
+vault_label_selector: "app.kubernetes.io/name=vault"
+vault_addr: "https://127.0.0.1:8200"
+vault_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
+eso_namespace: vault
+eso_sa_name: external-secrets-operator-controller-manager
+vault_k8s_role_name: external-secrets
+vault_sa_name: vault
+helm_repo_name: external-secrets
+helm_repo_url: https://charts.external-secrets.io
+helm_release_name: external-secrets
+chart_name: external-secrets/external-secrets
+service_account_name: external-secrets-operator-controller-manager
+kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('/home/' ~ (ansible_user | default('ansible')) ~ '/.kube/config', true) }}"
+
+# --- Observability ---
+observability_namespace: observability
+tempo_namespace: openshift-tempo-operator
+oco_namespace: openshift-cluster-observability-operator
+
+# --- Logging ---
+clo_namespace: "openshift-logging"
+clo_csv_label_name: "cluster-logging"
+odf_storage_class: "openshift-storage.noobaa.io"
+odf_obc_name: "loki-bucket-claim"
+
+# --- Dev Spaces Operator ---
+devspaces_namespace: "openshift-devspaces"
+devspaces_operator_app_name: "devspaces-operator"
+devspaces_operator_git_path: "gitops/operators/devspaces-operator"
+devspaces_csv_label_name: "openshift-devspaces"
+
+# --- Dev Spaces Instance ---
+devspaces_instance_app_name: "devspaces"
+devspaces_instance_name: "devspaces"
+
+# --- dsc CLI ---
+dsc_version: "3.24.0"
+dsc_bin_path: "/usr/local/bin/dsc"
+dsc_temp_dir: "/tmp/dsc-install-{{ 1000 | random }}"
+dsc_arch_map:
+  x86_64: "x64"
+  aarch64: "arm64"
+  arm64: "arm64"
+dsc_platform_map:
+  Darwin: "darwin"
+  Linux: "linux"
+dsc_platform: "{{ dsc_platform_map[ansible_system] }}"
+dsc_arch: "{{ dsc_arch_map[ansible_architecture] }}"
+dsc_base_url: "https://developers.redhat.com/content-gateway/file/codeready_workspaces/{{ dsc_version }}"
+dsc_file_name: "devspaces-{{ dsc_version }}-dsc-{{ dsc_platform }}-{{ dsc_arch }}.tar.gz"
+dsc_download_url: "{{ dsc_base_url }}/{{ dsc_file_name }}"
+
+# --- Quay ---
+quay_namespace: quay
+s3_quay_bucket_name: quay-s3-bucket-claim
+quay_host: quay.{{ openshift_base_domain }}
+quay_admin_user: "quayadmin"
+quay_admin_password: "backstage"
+quay_org: "developers"
+quay_org_email: "developers@rhdh.com"
+quay_robot_name: "rhdh-reader"
+quay_robot_token: "{{ quay_robot_token }}"
+
+# --- MCP ---
+mcp_token: "rhdh-static-token"

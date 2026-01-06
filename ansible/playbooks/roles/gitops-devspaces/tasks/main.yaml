@@ -1,0 +1,6 @@
+---
+- name: Bootstrap OpenShift Dev Spaces via GitOps
+  include_tasks: bootstrap-devspaces.yaml
+
+- name: Deploy Dev Spaces Instance
+  include_tasks: deploy-devspaces-instance.yaml

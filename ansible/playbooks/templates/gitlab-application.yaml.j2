@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitlab
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: {{ gitops_repo }}
+    targetRevision: main
+    path: apps/gitlab/chart
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: gitlab.smtp.host
+          value: "{{ gitlab_host }}"
+        - name: gitlab.ssh.host
+          value: "{{ gitlab_host }}"
+        - name: gitlab.rootPassword
+          value: "{{ gitlab_root_password }}"
+        - name: gitlab.users.password
+          value: "{{ gitlab_users_password }}"
+        - name: gitlab.host
+          value: "{{ gitlab_host }}"
+        - name: cluster.subdomain
+          value: "{{ openshift_base_domain }}"
+        - name: gitops.namespace
+          value: "openshift-gitops"
+        - name: postgresql.dbName
+          value: "gitlab"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitlab
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

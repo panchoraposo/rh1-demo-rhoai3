@@ -1,0 +1,60 @@
+- name: Crear cliente GitLab en Keycloak
+  uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ realm }}/clients"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      clientId: "{{ gitlab_client_id | default('gitlab') }}"
+      name: "GitLab"
+      enabled: true
+      publicClient: false
+      secret: "{{ gitlab_client_secret }}"
+      redirectUris:
+        - "https://{{ gitlab_host }}/users/auth/openid_connect/callback"
+      standardFlowEnabled: true
+      implicitFlowEnabled: false
+      directAccessGrantsEnabled: true
+      serviceAccountsEnabled: false
+      protocol: openid-connect
+      attributes:
+        post.logout.redirect.uris: "+"
+        saml.assertion.signature: "false"
+    status_code: [201, 409]
+    validate_certs: false
+  register: gitlab_client_creation
+
+- name: Obtener información del cliente GitLab
+  uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ realm }}/clients?clientId={{ gitlab_client_id | default('gitlab') }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    validate_certs: false
+  register: gitlab_client_info
+
+- name: Validar que se encontró el cliente
+  fail:
+    msg: "No se encontró el cliente con clientId={{ gitlab_client_id }}"
+  when: gitlab_client_info.json | length == 0
+
+- name: Extraer ID del cliente GitLab
+  set_fact:
+    gitlab_client_id_value: "{{ gitlab_client_info.json[0].id }}"
+
+- name: Regenerar client secret
+  uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/clients/{{ gitlab_client_id_value }}/client-secret"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    status_code: 200
+    return_content: true
+    validate_certs: false
+  register: gitlab_client_secret_response
+
+- name: Guardar nuevo client secret
+  set_fact:
+    gitlab_client_secret: "{{ gitlab_client_secret_response.json.value }}"

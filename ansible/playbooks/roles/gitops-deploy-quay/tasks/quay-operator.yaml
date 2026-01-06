@@ -1,0 +1,33 @@
+---
+- name: "Crear aplicación ArgoCD para instalar Quay Operator"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: quay-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source: { repoURL: "{{ gitops_repo }}", targetRevision: main, path: apps/quay-operator/overlays/dev }
+        destination: { server: https://kubernetes.default.svc }
+        syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
+
+- name: "Esperar a que el Quay Operator se instale correctamente (CSV Succeeded)"
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ quay_namespace }}"
+    label_selectors:
+      - "operators.coreos.com/quay-operator.{{ quay_namespace }}"
+  register: quay_csv_info
+  until: >
+    quay_csv_info.resources is defined and
+    quay_csv_info.resources | length > 0 and
+    quay_csv_info.resources[0].status is defined and
+    quay_csv_info.resources[0].status.phase is defined and
+    quay_csv_info.resources[0].status.phase == 'Succeeded'
+  retries: 60
+  delay: 10
+  changed_when: false

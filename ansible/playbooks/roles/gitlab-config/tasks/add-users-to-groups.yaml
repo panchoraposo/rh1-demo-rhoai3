@@ -1,0 +1,5 @@
+- name: Process each group and its users
+  ansible.builtin.include_tasks: roles/gitlab-config/tasks/add-users-to-group.yaml
+  loop: "{{ additional_groups }}"
+  loop_control:
+    loop_var: current_group_data
