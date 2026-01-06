@@ -89,7 +89,7 @@ validate_ssl_certs: false
 backstage_image: registry.redhat.io/rhdh/rhdh-hub-rhel9
 
 # --- Keycloak ---
-keycloak_hostname: keycloak.{{ openshift_base_domain }}
+keycloak_hostname: sso.{{ openshift_base_domain }}
 keycloak_realm: backstage
 keycloak_client_id: backstage
 keycloak_client_secret: ""

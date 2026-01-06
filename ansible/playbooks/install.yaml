@@ -5,16 +5,16 @@
   
   roles:
     - role: openshift-config
-    #- role: gitops-config
-    #- role: gitops-devspaces
+    - role: gitops-config
+    - role: gitops-devspaces
     #- role: gitops-deploy-keycloak
-    #- role: gitops-deploy-vault-operator
-    #- role: keycloak-config
-    #- role: gitops-deploy-gitlab
+    - role: gitops-deploy-vault-operator
+    - role: keycloak-config
+    - role: gitops-deploy-gitlab
     - role: gitops-deploy-odf
-    #- role: gitops-deploy-quay
-    #- role: gitlab-config
-    #- role: gitops-deploy-developer-hub
-    #- role: gitops-observability
-    #- role: gitops-logging
+    - role: gitops-deploy-quay
+    - role: gitlab-config
+    - role: gitops-deploy-developer-hub
+    - role: gitops-observability
+    - role: gitops-logging
     

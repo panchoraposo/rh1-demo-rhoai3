@@ -70,6 +70,29 @@
           jsonPointers:
           - /metadata/ownerReferences
 
+- name: Esperar a que el CSV de ODF se instale correctamente
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: openshift-storage
+  register: csv_list
+  until:
+    - csv_list.resources | length > 0
+    - csv_list.resources[0].status.phase is defined
+    - csv_list.resources[0].status.phase == "Succeeded"
+  retries: 30
+  delay: 20
+
+- name: Verificar que la CRD StorageCluster ya existe
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: storageclusters.ocs.openshift.io
+  register: crd_check
+  until: crd_check.resources | length > 0
+  retries: 20
+  delay: 15
+
 - name: "Esperar a que la instancia de NooBaa esté lista (Phase: Ready)"
   kubernetes.core.k8s_info:
     api_version: noobaa.io/v1alpha1

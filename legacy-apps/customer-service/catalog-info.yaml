@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: customer-service
+  description: API del servicio de clientes del proyecto NeuralBank
+  tags:
+    - openapi
+    - core
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  definition:
+    $text: ./api/openapi.yaml
