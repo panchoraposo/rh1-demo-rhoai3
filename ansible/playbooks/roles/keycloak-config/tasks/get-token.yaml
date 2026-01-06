@@ -11,7 +11,7 @@
 
 - name: Esperar que Keycloak esté disponible en la ruta
   uri:
-    url: "https://keycloak.{{ openshift_base_domain }}/realms/master"
+    url: "https://sso.{{ openshift_base_domain }}/realms/master"
     method: GET
     status_code: 200
     validate_certs: false
