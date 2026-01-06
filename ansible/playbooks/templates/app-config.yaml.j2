@@ -33,7 +33,7 @@ auth:
     oidc:
       production:
         prompt: auto
-        metadataUrl: https://keycloak.{{ openshift_base_domain }}/realms/backstage/.well-known/openid-configuration
+        metadataUrl: https://sso.{{ openshift_base_domain }}/realms/backstage/.well-known/openid-configuration
         clientId: backstage
         clientSecret: ${OAUTH_CLIENT_SECRET}
         signIn:
@@ -120,7 +120,7 @@ catalog:
     ## --- KEYCLOAK_CATALOG_PROVIDER ---
     keycloakOrg:
       default:
-        baseUrl: https://keycloak.{{ openshift_base_domain }}
+        baseUrl: https://sso.{{ openshift_base_domain }}
         loginRealm: backstage
         realm: backstage
         clientId: backstage
