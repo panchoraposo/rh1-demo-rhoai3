@@ -121,3 +121,38 @@
         apiGroup: rbac.authorization.k8s.io
         kind: ClusterRole
         name: argocd-tekton-resource-manager
+
+- name: "Grant cluster-admin to ArgoCD Application Controller"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: openshift-gitops-argocd-application-controller-admin
+      subjects:
+        - kind: ServiceAccount
+          name: openshift-gitops-argocd-application-controller
+          namespace: openshift-gitops
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+
+- name: "Patch ArgoCD Controller resources (Fix OOMKilled)"
+  kubernetes.core.k8s:
+    state: patched
+    api_version: argoproj.io/v1alpha1
+    kind: ArgoCD
+    name: openshift-gitops
+    namespace: openshift-gitops
+    definition:
+      spec:
+        controller:
+          resources:
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+            requests:
+              memory: "1Gi"
+              cpu: "500m"

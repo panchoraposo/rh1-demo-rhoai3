@@ -38,3 +38,17 @@
       spec:
         replicas: "{{ desired_replicas }}"
   register: patch_result
+
+- name: "Esperar hasta que la MachineSet tenga {{ desired_replicas }} réplicas listas"
+  kubernetes.core.k8s_info:
+    api_version: machine.openshift.io/v1beta1
+    kind: MachineSet
+    name: "{{ target_machineset_name }}"
+    namespace: openshift-machine-api
+  register: machineset_status
+  until:
+    - machineset_status.resources | length > 0
+    - machineset_status.resources[0].status.readyReplicas is defined
+    - machineset_status.resources[0].status.readyReplicas == desired_replicas | int
+  retries: 60
+  delay: 10
