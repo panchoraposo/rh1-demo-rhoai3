@@ -1,0 +1,19 @@
+---
+- name: Clonar el repositorio de Neuralbank
+  ansible.builtin.git:
+    repo: "https://github.com/pkstaz/neuralbank-workshop.git"
+    dest: "/tmp/neuralbank-workshop"
+    version: master
+    force: yes
+
+- name: Instalar/Actualizar release de Helm
+  kubernetes.core.helm:
+    name: neuralbank
+    chart_ref: "/tmp/neuralbank-workshop/charts"
+    release_namespace: "neuralbank"
+    create_namespace: true
+    values_files:
+      - "/tmp/neuralbank-workshop/charts/values.yaml"
+    wait: yes
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"

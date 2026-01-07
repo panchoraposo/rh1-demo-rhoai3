@@ -1,0 +1,20 @@
+---
+- name: "Importar Realm 'neuralbank' en Keycloak"
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'templates/neuralbank-realm.yaml.j2') }}"
+
+- name: "Esperar a que la importación del Realm finalice"
+  kubernetes.core.k8s_info:
+    api_version: k8s.keycloak.org/v2alpha1
+    kind: KeycloakRealmImport
+    name: neuralbank-full-import
+    namespace: keycloak
+  register: realm_import_status
+  until: 
+    - realm_import_status.resources | length > 0
+    - realm_import_status.resources[0].status.conditions is defined
+    - realm_import_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Done') | selectattr('status', 'equalto', 'True') | list | length > 0
+  retries: 30
+  delay: 10
+  ignore_errors: yes
