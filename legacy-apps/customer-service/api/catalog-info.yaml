@@ -11,4 +11,4 @@ spec:
   lifecycle: production
   owner: group:default/platform-engineers
   definition:
-    $text: ./api/openapi.yaml
+    $text: ./openapi.yaml
