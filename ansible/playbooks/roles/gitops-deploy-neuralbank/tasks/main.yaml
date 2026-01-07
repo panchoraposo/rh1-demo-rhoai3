@@ -1,0 +1,5 @@
+- name: Importar realm de Neuralbank
+  include_tasks: neuralbank-realm.yaml
+
+- name: Core Neuralbank
+  include_tasks: customer-service.yaml
