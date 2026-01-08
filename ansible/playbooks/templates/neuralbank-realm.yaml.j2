@@ -16,10 +16,13 @@ spec:
     clients:
     - clientId: neuralbank-frontend
       name: Frontend Web App
-      publicClient: true
+      publicClient: false
       standardFlowEnabled: true
+      directAccessGrantsEnabled: true
       redirectUris: ["https://neuralbank.{{ openshift_base_domain }}/*"]
       webOrigins: ["*"]
+      attributes:
+        pkce.code.challenge.method: "S256"
     - clientId: neuralbank-backend
       name: Backend API Service
       publicClient: false
