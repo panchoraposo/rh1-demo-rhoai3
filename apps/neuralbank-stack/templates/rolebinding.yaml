@@ -3,7 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: neuralbank-gitops-role
-  namespace: neuralbank-stack
+  namespace: neuralbank
 rules:
   - apiGroups:
       - ""
@@ -88,7 +88,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: neuralbank-gitops-rolebinding
-  namespace: neuralbank-stack
+  namespace: neuralbank
 subjects:
   - kind: ServiceAccount
     name: openshift-gitops-argocd-application-controller
