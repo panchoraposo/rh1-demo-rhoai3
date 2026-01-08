@@ -3,14 +3,14 @@ kind: HTTPRoute
 metadata:
   name: neuralbank-api-route
   annotations:
-    argocd.argoproj.io/sync-wave: "5"   
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   parentRefs:
     - name: neuralbank-gateway
       namespace: istio-system
   
   hostnames:
-    - "neuralbank.apps.cluster-gpzvq.gpzvq.sandbox670.opentlc.com"
+    - "neuralbank.apps.ocp.ccld9.sandbox1286.opentlc.com"
 
   rules:
     - matches:
@@ -29,14 +29,14 @@ kind: HTTPRoute
 metadata:
   name: neuralbank-root-route
   annotations:
-    argocd.argoproj.io/sync-wave: "5"   
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   parentRefs:
     - name: neuralbank-gateway
       namespace: istio-system
   
   hostnames:
-    - "neuralbank.apps.cluster-gpzvq.gpzvq.sandbox670.opentlc.com"
+    - "neuralbank.apps.ocp.ccld9.sandbox1286.opentlc.com"
 
   rules:
     - matches:
