@@ -1,0 +1,8 @@
+resources:
+  - rolebinding.yaml
+  - oidc-policy.yaml
+  - kuadrant.yaml
+  - neuralbank-route.yaml
+  - ratelimit-policy-customers.yaml
+
+namespace: neuralbank

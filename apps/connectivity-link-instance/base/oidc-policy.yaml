@@ -1,0 +1,28 @@
+apiVersion: extensions.kuadrant.io/v1alpha1
+kind: OIDCPolicy
+metadata:
+  name: neuralbank-oidc
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  provider:
+    issuerURL: "https://rhbk.apps.cluster-gpzvq.gpzvq.sandbox670.opentlc.com/realms/neuralbank"
+    clientID: neuralbank
+    clientSecret: "hg6hlG50pjVtiNpzzPpgSQxCJVPVwNLu"
+    authorizationEndpoint : "https://rhbk.apps.cluster-gpzvq.gpzvq.sandbox670.opentlc.com/realms/neuralbank/protocol/openid-connect/auth"
+    redirectURI : "https://neuralbank.apps.cluster-gpzvq.gpzvq.sandbox670.opentlc.com/auth/callback"
+    tokenEndpoint: "https://rhbk.apps.cluster-gpzvq.gpzvq.sandbox670.opentlc.com/realms/neuralbank/protocol/openid-connect/token"
+   
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: neuralbank-api-route
+
+  auth:
+    tokenSource:
+      authorizationHeader:
+        prefix: Bearer
+        name: Authorization
+
+      cookie:
+        name: jwt
