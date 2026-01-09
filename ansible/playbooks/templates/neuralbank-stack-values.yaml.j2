@@ -1,0 +1,42 @@
+# --- Configuración Global ---
+global:
+  postgresql:
+    auth:
+      postgresPassword: "supersecretpassword"
+      username: "neuralbank"
+      password: "neuralbank123!"
+      database: "neuralbank"
+
+# --- Backend ---
+backend:
+  image:
+    repository: quay.io/maximilianopizarro/neuralbank-backend
+    tag: "latest"
+    pullPolicy: Always
+  service:
+    port: 8080
+  replicaCount: 1
+
+# --- Frontend ---
+frontend:
+  image:
+    repository: quay.io/maximilianopizarro/neuralbank-front 
+    tag: "pkce"
+    pullPolicy: Always
+  service:
+    port: 8080
+  replicaCount: 1
+
+# --- Keycloak Configuration ---
+keycloak:
+  issuerUrl: 'https://{{ keycloak_hostname }}/realms/neuralbank'
+  clientId: 'neuralbank-frontend'
+  clientSecret: '{{ neuralbank_frontend_secret }}'
+  authorizationEndpoint: 'https://{{ keycloak_hostname }}/realms/neuralbank/protocol/openid-connect/auth'
+  redirectUri: 'https://neuralbank.{{ openshift_base_domain }}/auth/callback'
+  tokenEndpoint: 'https://{{ keycloak_hostname }}/realms/neuralbank/protocol/openid-connect/token'
+  postLogoutRedirectUri: 'https://neuralbank.{{ openshift_base_domain }}'
+
+# --- API Configuration ---
+api:
+  baseUrl: '/api'

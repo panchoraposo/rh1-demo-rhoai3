@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: neuralbank-external-route
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+    haproxy.router.openshift.io/timeout: 300s
+spec:
+  host: "neuralbank.{{ openshift_base_domain }}"
+  to:
+    kind: Service
+    name: neuralbank-gateway-istio
+    weight: 100
+  port:
+    targetPort: http 
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
