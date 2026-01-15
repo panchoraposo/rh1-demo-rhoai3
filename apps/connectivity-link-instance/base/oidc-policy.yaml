@@ -2,8 +2,6 @@ apiVersion: extensions.kuadrant.io/v1alpha1
 kind: OIDCPolicy
 metadata:
   name: neuralbank-oidc
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
 spec:
   provider:
     issuerURL: "https://sso.apps.ocp.ccld9.sandbox1286.opentlc.com/realms/neuralbank"

@@ -3,8 +3,6 @@ kind: Role
 metadata:
   name: neuralbank-app-writer
   namespace: neuralbank
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
 rules:
   - apiGroups:
       - "" 
@@ -77,8 +75,6 @@ kind: RoleBinding
 metadata:
   name: neuralbank-app-binding
   namespace: neuralbank
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
 subjects:
   - kind: ServiceAccount
     name: openshift-gitops-argocd-application-controller

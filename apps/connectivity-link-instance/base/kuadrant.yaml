@@ -2,8 +2,6 @@ kind: Kuadrant
 apiVersion: kuadrant.io/v1beta1
 metadata:
   name: neuralbank-authorino
-  annotations:
-    argocd.argoproj.io/sync-wave: '5'  
 spec:
   mtls:
     enable: true
