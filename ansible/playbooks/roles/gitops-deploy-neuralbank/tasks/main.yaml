@@ -1,5 +1,11 @@
+- name: Neuralbank Gateway (Istio)
+  include_tasks: neuralbank-gateway.yaml
+
 - name: Importar realm de Neuralbank
   include_tasks: neuralbank-realm.yaml
 
-- name: Core Neuralbank
-  include_tasks: customer-service.yaml
+- name: Instalar Connectivity Link
+  include_tasks: connectivity-link.yaml
+
+- name: Neuralbank Stack
+  include_tasks: neuralbank-stack.yaml

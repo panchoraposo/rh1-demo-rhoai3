@@ -1,4 +1,22 @@
 ---
+- name: "Crear namespace 'neuralbank'"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: neuralbank
+
+- name: "Eliminar rastro de importación anterior (Forzar re-import)"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: k8s.keycloak.org/v2alpha1
+    kind: KeycloakRealmImport
+    name: neuralbank-full-import
+    namespace: keycloak
+  ignore_errors: yes
+
 - name: "Importar Realm 'neuralbank' en Keycloak"
   kubernetes.core.k8s:
     state: present
@@ -15,6 +33,77 @@
     - realm_import_status.resources | length > 0
     - realm_import_status.resources[0].status.conditions is defined
     - realm_import_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Done') | selectattr('status', 'equalto', 'True') | list | length > 0
-  retries: 30
-  delay: 10
-  ignore_errors: yes
+  retries: 60
+  delay: 5
+
+- name: Obtener contraseña desde Secret de OpenShift
+  command: >
+    oc -n keycloak get secret keycloak-initial-admin -o jsonpath="{.data.password}"
+  register: kc_admin_pass_raw
+  changed_when: false
+
+- name: Setear usuario y contraseña de admin Keycloak
+  set_fact:
+    keycloak_admin_user: temp-admin
+    keycloak_admin_password: "{{ kc_admin_pass_raw.stdout | b64decode }}"
+
+- name: Obtener token de administración
+  uri:
+    url: "https://{{ keycloak_hostname }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body:
+      username: "{{ keycloak_admin_user }}"
+      password: "{{ keycloak_admin_password }}"
+      client_id: "admin-cli"
+      grant_type: "password"
+    body_format: form-urlencoded
+    return_content: true
+    validate_certs: false
+  register: kc_token_response
+  until: kc_token_response.status == 200
+  retries: 10
+  delay: 5
+
+- name: Guardar token como variable
+  set_fact:
+    kc_token: "{{ kc_token_response.json.access_token }}"
+
+- name: Obtener UUID del cliente 'neuralbank-frontend'
+  uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/neuralbank/clients?clientId=neuralbank-frontend"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    validate_certs: false
+    return_content: true
+  register: client_lookup_response
+  until: client_lookup_response.json | length > 0
+  retries: 20
+  delay: 5
+
+- name: Obtener el Client Secret usando el UUID
+  uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/neuralbank/clients/{{ client_lookup_response.json[0].id }}/client-secret"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    validate_certs: false
+    return_content: true
+  register: client_secret_response
+
+- name: Establecer variable con el secreto
+  set_fact:
+    neuralbank_frontend_secret: "{{ client_secret_response.json.value }}"
+
+- name: "Crear Secret 'neuralbank-oidc-secret' en namespace neuralbank"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: neuralbank-oidc-secret
+        namespace: neuralbank
+      type: Opaque
+      stringData:
+        client-secret: "{{ neuralbank_frontend_secret }}"

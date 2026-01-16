@@ -1,0 +1,143 @@
+---
+- name: "Recopilar facts del sistema (Fecha y Hora)"
+  ansible.builtin.setup:
+    filter: "ansible_date_time"
+
+- name: "Obtener Secret de Admin de Keycloak (Master)"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: keycloak
+    name: keycloak-initial-admin
+  register: kc_secret_res
+
+- name: "Procesar Password de Keycloak"
+  ansible.builtin.set_fact:
+    final_kc_pass: >-
+      {{ 
+        kc_secret_res.resources[0].data.password | b64decode 
+        if (kc_secret_res.resources | length > 0) 
+        else '' 
+      }}
+
+- name: "Obtener Password Admin de ArgoCD"
+  ansible.builtin.shell: |
+    oc extract secret/openshift-gitops-cluster -n openshift-gitops --to=- --keys=admin.password
+  register: argocd_pass_cmd
+  changed_when: false
+  ignore_errors: true
+
+- name: "Obtener ruta de ArgoCD"
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: openshift-gitops-server
+    namespace: openshift-gitops
+  register: argocd_route_res
+
+- name: Consolidar variables finales
+  ansible.builtin.set_fact:
+    argocd_url: "https://{{ argocd_route_res.resources[0].spec.host }}"
+    rhdh_url: "https://backstage-developer-hub-backstage.{{ openshift_base_domain }}/"
+    neuralbank_url: "https://neuralbank.{{ openshift_base_domain }}/"
+    dashboard_hostname: "dashboard.{{ openshift_base_domain }}"
+    
+    keycloak_url: "https://sso.{{ openshift_base_domain }}"
+    keycloak_admin_user: "temp-admin"
+    keycloak_admin_password: "{{ final_kc_pass }}"
+    
+    argocd_admin_user: "admin"
+    argocd_admin_password: "{{ argocd_pass_cmd.stdout | default('Error obteniendo secret') }}"
+    
+    quay_admin_user: "{{ quay_admin_user }}"
+    quay_admin_password: "{{ quay_admin_password }}"
+    gitlab_root_password: "{{ common_user_password }}"
+    neuralbank_app_password: "Welcome123"
+
+- name: "Namespace"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: dashboard
+
+- name: "Actualizar ConfigMap con HTML Renderizado"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: dashboard-html
+        namespace: dashboard
+      data:
+        index.html: "{{ lookup('template', 'templates/demo-dashboard.html.j2') }}"
+
+- name: "Desplegar Servidor Apache"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: dashboard
+        namespace: dashboard
+        labels: { app: dashboard }
+      spec:
+        replicas: 1
+        selector:
+          matchLabels: { app: dashboard }
+        template:
+          metadata:
+            labels: { app: dashboard }
+          spec:
+            containers:
+              - name: httpd
+                image: registry.redhat.io/ubi9/httpd-24
+                imagePullPolicy: IfNotPresent
+                ports: [{ containerPort: 8080 }]
+                volumeMounts:
+                  - name: html-volume
+                    mountPath: /var/www/html
+            volumes:
+              - name: html-volume
+                configMap: { name: dashboard-html }
+
+- name: "Service"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: dashboard
+        namespace: dashboard
+      spec:
+        selector: { app: dashboard }
+        ports:
+          - port: 80
+            targetPort: 8080
+
+- name: "Route"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: dashboard
+        namespace: dashboard
+      spec:
+        host: "{{ dashboard_hostname }}"
+        to:
+          kind: Service
+          name: dashboard
+        port: { targetPort: 8080 }
+        tls: { termination: edge }
+  register: dashboard_route
+
+- name: "✅ Instalación finalizada"
+  ansible.builtin.debug:
+    msg: "NeuralBank Demo Environment: https://{{ dashboard_route.result.spec.host }}"

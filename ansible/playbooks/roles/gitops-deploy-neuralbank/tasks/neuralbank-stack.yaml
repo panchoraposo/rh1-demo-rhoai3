@@ -1,0 +1,116 @@
+---
+- name: "Directorio NeuralBank en repo local"
+  ansible.builtin.file:
+    path: "{{ local_repo_path }}/apps/neuralbank-stack"
+    state: directory
+    mode: '0755'
+
+- name: "Renderizar values.yaml con secretos de Keycloak"
+  ansible.builtin.template:
+    src: "templates/neuralbank-stack-values.yaml.j2"
+    dest: "{{ local_repo_path }}/apps/neuralbank-stack/values.yaml"
+    mode: '0644'
+  vars:
+    oidc_client_secret: "{{ neuralbank_frontend_secret }}"
+
+- name: "Git Workflow: Commit y Push NeuralBank"
+  ansible.builtin.shell: |
+    git add apps/neuralbank-stack/values.yaml
+    if ! git diff --cached --quiet; then
+      git commit -m "feat: Configure NeuralBank values with OIDC secrets"
+      git push origin main
+    else
+      echo "No changes to commit"
+    fi
+  args:
+    chdir: "{{ local_repo_path }}"
+  environment:
+    GIT_SSL_NO_VERIFY: "true"
+
+- name: "Crear ArgoApp para NeuralBank"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: neuralbank-stack
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
+          targetRevision: main
+          path: apps/neuralbank-stack
+          helm:
+            valueFiles:
+              - values.yaml
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: neuralbank
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+
+- name: "Esperar a que se cree el namespace neuralbank"
+  kubernetes.core.k8s_info:
+    kind: Namespace
+    name: neuralbank
+  register: nb_ns
+  until: nb_ns.resources | length > 0
+  retries: 30
+  delay: 2
+
+- name: "Esperar a que ArgoCD sincronice los Deployments"
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ item }}"
+    namespace: neuralbank
+  register: nb_deploy_check
+  until: nb_deploy_check.resources | length > 0
+  retries: 60
+  delay: 10
+  loop:
+    - neuralbank-stack-frontend
+    - neuralbank-stack-backend
+    - neuralbank-db
+
+- name: "Esperar a que los Deployments estén completamente listos"
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ item }}"
+    namespace: neuralbank
+  register: deploy_ready
+  until:
+    - deploy_ready.resources | length > 0
+    - deploy_ready.resources[0].status.readyReplicas is defined
+    - deploy_ready.resources[0].status.readyReplicas >= 1
+    - deploy_ready.resources[0].status.conditions | selectattr('type', 'equalto', 'Available') | selectattr('status', 'equalto', 'True') | list | length > 0
+  retries: 90
+  delay: 10
+  loop:
+    - neuralbank-stack-frontend
+    - neuralbank-stack-backend
+    - neuralbank-db
+
+- name: "Validar que el endpoint de NeuralBank responda"
+  ansible.builtin.uri:
+    url: "https://neuralbank.{{ openshift_base_domain }}"
+    validate_certs: false
+    status_code: [200, 302, 401]
+    follow_redirects: none
+  register: result
+  until: result.status in [200, 302, 401]
+  retries: 60
+  delay: 10
+
+- name: "Mostrar URL final de acceso"
+  ansible.builtin.debug:
+    msg: 
+      - "✅ NeuralBank está disponible en: https://neuralbank.{{ openshift_base_domain }}"
+      - "HTTP Status: {{ result.status }}"

@@ -1,0 +1,28 @@
+apiVersion: extensions.kuadrant.io/v1alpha1
+kind: OIDCPolicy
+metadata:
+  name: neuralbank-oidc
+spec:
+  provider:
+    issuerURL: "https://{{ keycloak_hostname }}/realms/neuralbank"
+    clientID: "neuralbank-frontend" 
+    clientSecretRef:
+      name: neuralbank-oidc-secret
+      key: client-secret
+
+    authorizationEndpoint: "https://{{ keycloak_hostname }}/realms/neuralbank/protocol/openid-connect/auth"
+    redirectURI: "https://neuralbank.{{ openshift_base_domain }}/auth/callback"
+    tokenEndpoint: "https://{{ keycloak_hostname }}/realms/neuralbank/protocol/openid-connect/token"
+   
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: neuralbank-api-route
+
+  auth:
+    tokenSource:
+      authorizationHeader:
+        prefix: Bearer
+        name: Authorization
+      cookie:
+        name: jwt

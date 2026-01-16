@@ -37,7 +37,7 @@ gitlab_redirect_uri: "https://{{ keycloak_hostname }}/realms/{{ keycloak_realm }
 rhdh_namespace: "backstage"
 gitlab_namespace: "gitlab"
 grant_admin_privileges: true
-gitlab_repo: "{{ gitlab_host }}/platform-engineers/developer-hub"
+gitlab_repo: "https://{{ gitlab_host }}/platform-engineers/developer-hub"
 
 # Gitlab: users and groups
 additional_groups:

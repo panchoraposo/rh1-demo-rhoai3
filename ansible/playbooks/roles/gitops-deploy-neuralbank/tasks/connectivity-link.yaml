@@ -1,0 +1,182 @@
+- name: "Crear namespace 'kuadrant-system'"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: kuadrant-system
+        labels:
+          openshift.io/cluster-monitoring: "true"
+          istio-injection: enabled
+
+- name: "Verificar y copiar CA cert a kuadrant-system"
+  block:
+    - name: "Obtener CA cert de istio-system"
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ConfigMap
+        name: istio-ca-root-cert
+        namespace: istio-system
+      register: istio_ca_source
+
+    - name: "Crear CA cert en kuadrant-system"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: istio-ca-root-cert
+            namespace: kuadrant-system
+            labels:
+              istio.io/config: "true"
+          data: "{{ istio_ca_source.resources[0].data }}"
+      when: istio_ca_source.resources | length > 0
+
+- name: "Crear ArgoApp para Connectivity Link Operator"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: rhcl-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source: 
+          repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
+          targetRevision: main 
+          path: apps/connectivity-link-operator/overlays/dev 
+        destination: 
+          server: https://kubernetes.default.svc
+        syncPolicy: 
+          automated: 
+            prune: true
+            selfHeal: true
+          syncOptions: 
+            - CreateNamespace=true
+
+- name: "Aprobar InstallPlans pendientes"
+  ansible.builtin.shell: |
+    for ip in $(oc get installplan -n kuadrant-system -o jsonpath='{.items[?(@.status.phase=="RequiresApproval")].metadata.name}'); do
+      oc patch installplan $ip -n kuadrant-system --type merge --patch '{"spec":{"approved":true}}'
+      echo "Approved: $ip"
+    done
+  register: approve_cmd
+  changed_when: "'Approved' in approve_cmd.stdout"
+  retries: 5
+  delay: 10
+
+- name: "Esperar a que el POD del DNS Operator esté Running"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: kuadrant-system
+    label_selectors:
+      - control-plane=dns-operator-controller-manager
+  register: dns_pod_check
+  until:
+    - dns_pod_check.resources | length > 0
+    - dns_pod_check.resources[0].status.phase == "Running"
+  retries: 60
+  delay: 10
+
+- name: "Asegurar directorio de Connectivity Link en repo local"
+  ansible.builtin.file:
+    path: "{{ local_repo_path }}/apps/connectivity-link-instance/base"
+    state: directory
+    mode: '0755'
+
+- name: "Renderizar manifiestos de Connectivity Link"
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "{{ local_repo_path }}/apps/connectivity-link-instance/base/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    mode: '0644'
+  with_fileglob:
+    - "templates/neuralbank-route.yaml.j2"
+    - "templates/oidc-policy.yaml.j2"
+
+- name: "Git Workflow: Commit y Push CL"
+  ansible.builtin.shell: |
+    git config user.name "Ansible Automation"
+    git config user.email "ansible@demo.local"
+    cd "{{ local_repo_path }}"
+    git add apps/connectivity-link-instance/base/
+    if ! git diff --cached --quiet; then
+        git commit -m "feat: Update CL manifests"
+        git push origin main
+    fi
+  environment:
+    GIT_SSL_NO_VERIFY: "true"
+
+- name: "Crear ArgoApp para Instancia Connectivity Link"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: rhcl-instance
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source: 
+          repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
+          targetRevision: main 
+          path: apps/connectivity-link-instance/overlays/dev 
+        destination: 
+          server: https://kubernetes.default.svc
+        syncPolicy: 
+          automated: 
+            prune: true
+            selfHeal: true
+          syncOptions: 
+            - CreateNamespace=true
+
+- name: "Esperar a que ArgoCD cree los recursos"
+  kubernetes.core.k8s_info:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: rhcl-instance
+    namespace: openshift-gitops
+  register: argo_creation
+  until: argo_creation.resources | length > 0
+  retries: 20
+  delay: 5
+
+- name: "Pausa"
+  ansible.builtin.pause:
+    seconds: 15
+
+- name: "Esperar a que Limitador y Authorino estén Ready"
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ item }}"
+    namespace: neuralbank
+  register: cl_deployments
+  until:
+    - cl_deployments.resources | length > 0
+    - cl_deployments.resources[0].status.readyReplicas is defined
+    - cl_deployments.resources[0].status.readyReplicas >= 1
+  retries: 120
+  delay: 10
+  loop:
+    - limitador-limitador
+    - authorino
+
+- name: "Patch para habilitar 'kuadrant-console-plugin'"
+  kubernetes.core.k8s:
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+    state: patched
+    definition:
+      spec:
+        plugins: ["kuadrant-console-plugin"]
+
+- name: "✅ Connectivity Link Operativo"
+  ansible.builtin.debug:
+    msg: "Los componentes Limitador y Authorino están corriendo."

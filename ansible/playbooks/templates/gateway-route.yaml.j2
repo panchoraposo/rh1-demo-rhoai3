@@ -3,7 +3,6 @@ kind: Route
 metadata:
   name: neuralbank-external-route
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
     haproxy.router.openshift.io/timeout: 300s
 spec:
   host: "neuralbank.{{ openshift_base_domain }}"

@@ -1,0 +1,133 @@
+---
+- name: "Crear namespace 'istio-system'"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: istio-system
+        labels:
+          istio-injection: disabled
+
+- name: "Asegurar que el directorio apps/service-mesh/base existe"
+  ansible.builtin.file:
+    path: "{{ local_repo_path }}/apps/service-mesh/base"
+    state: directory
+    mode: '0755'
+
+- name: "Renderizar Route de Service Mesh"
+  ansible.builtin.template:
+    src: "templates/gateway-route.yaml.j2"
+    dest: "{{ local_repo_path }}/apps/service-mesh/base/gateway-route.yaml"
+    mode: '0644'
+
+- name: "Git Workflow: Commit y Push de Service Mesh"
+  ansible.builtin.shell: |
+    git config user.name "Ansible Automation"
+    git config user.email "ansible@demo.local"
+    git add apps/service-mesh/base/gateway-route.yaml
+    if ! git diff --cached --quiet; then
+      git commit -m "feat: Configure Service Mesh route via Ansible"
+      git push origin main
+    else
+      echo "No changes"
+    fi
+  args:
+    chdir: "{{ local_repo_path }}"
+  environment:
+    GIT_SSL_NO_VERIFY: "true"
+
+- name: "Crear aplicación ArgoCD (Istiod + Gateway)"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: neuralbank-gateway
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source: 
+          repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
+          targetRevision: main 
+          path: apps/service-mesh/overlays/dev 
+        destination: { server: https://kubernetes.default.svc }
+        syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
+
+- name: "Esperar a que se cree el Deployment de Istiod"
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: istiod
+    namespace: istio-system
+  register: istiod_check
+  until: istiod_check.resources | length > 0
+  retries: 60
+  delay: 5
+
+- name: "Parchar Istiod con configuración de OpenShift (Sail Operator Config)"
+  kubernetes.core.k8s:
+    state: patched
+    kind: Deployment
+    name: istiod
+    namespace: istio-system
+    definition:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: discovery
+                env:
+                  - name: PILOT_ENABLE_GATEWAY_API_CA_CERT_ONLY
+                    value: "true"
+                  - name: PILOT_ENABLE_GATEWAY_API
+                    value: "true"
+                  - name: PILOT_ENABLE_GATEWAY_API_DEPLOYMENT_CONTROLLER
+                    value: "true"
+                  - name: PILOT_ENABLE_GATEWAY_API_STATUS
+                    value: "true"
+
+- name: "Esperar a que Istiod se reinicie y esté Running"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: istio-system
+    label_selectors:
+      - app=istiod
+  register: istiod_pod
+  until:
+    - istiod_pod.resources | length > 0
+    - istiod_pod.resources[0].status.phase == 'Running'
+    - istiod_pod.resources[0].status.containerStatuses[0].ready == true
+  retries: 60
+  delay: 5
+
+- name: "Borrar Pods del Gateway para forzar reconexión con el nuevo Istiod"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Pod
+    namespace: istio-system
+    label_selectors:
+      - app=neuralbank-gateway-istio
+  ignore_errors: yes
+
+- name: "Esperar a que el Gateway esté Available"
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: neuralbank-gateway-istio
+    namespace: istio-system
+  register: gateway_deploy
+  until:
+    - gateway_deploy.resources | length > 0
+    - gateway_deploy.resources[0].status.readyReplicas is defined
+    - gateway_deploy.resources[0].status.readyReplicas >= 1
+  retries: 60
+  delay: 10
+
+- name: "✅ ÉXITO"
+  ansible.builtin.debug:
+    msg: "Istiod parchado y Gateway conectado exitosamente."

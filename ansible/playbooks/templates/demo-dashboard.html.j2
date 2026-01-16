@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NeuralBank Demo Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f0f2f5; padding-top: 40px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 24px; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); }
+        .card-header { background-color: #ffffff; border-bottom: 2px solid #f0f2f5; font-weight: 700; color: #2c3e50; padding: 15px 20px; font-size: 1.1rem; }
+        .icon-box { display: inline-block; width: 30px; text-align: center; margin-right: 10px; }
+        .pass-code { font-family: 'Courier New', monospace; background: #e9ecef; color: #d63384; padding: 2px 5px; border-radius: 4px; font-weight: bold; font-size: 0.9em; word-break: break-all; }
+        .btn-access { border-radius: 20px; padding: 5px 15px; font-size: 0.9rem; font-weight: 600; }
+        .user-group-box { background-color: #f8f9fa; border-left: 3px solid #6c757d; padding: 8px; margin-top: 10px; font-size: 0.9rem; }
+        .section-title { border-left: 5px solid #0d6efd; padding-left: 15px; margin-bottom: 20px; color: #495057; }
+        /* Tabs styling */
+        .nav-tabs .nav-link { color: #495057; border: none; border-bottom: 2px solid transparent; }
+        .nav-tabs .nav-link.active { color: #198754; border-bottom: 2px solid #198754; background: transparent; font-weight: bold; }
+        .nav-tabs .nav-link:hover { border-color: transparent; color: #157347; }
+        .tab-content { padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold text-primary">NeuralBank Demo Environment</h1>
+        </div>
+
+        <h4 class="section-title">Plataform & Tools</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header border-bottom border-success"><span class="icon-box text-success"><i class="fa-solid fa-key"></i></span> Keycloak (Admin)</div>
+                    <div class="card-body">
+                        <div class="mb-2 text-muted small">Administration Console</div>
+                        <ul class="list-unstyled">
+                            <li><i class="fa-solid fa-user small text-muted"></i> <strong>{{ keycloak_admin_user }}</strong></li>
+                            <li><i class="fa-solid fa-key small text-muted"></i> <span class="pass-code">{{ keycloak_admin_password }}</span></li>
+                        </ul>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ keycloak_url }}" target="_blank" class="btn btn-outline-success btn-access">Open Keycloak ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header border-bottom border-primary"><span class="icon-box text-primary"><i class="fa-solid fa-docker"></i></span> Quay Registry</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fa-solid fa-user small text-muted"></i> <strong>{{ quay_admin_user }}</strong></li>
+                            <li><i class="fa-solid fa-key small text-muted"></i> <span class="pass-code">{{ quay_admin_password }}</span></li>
+                        </ul>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="https://quay.{{ openshift_base_domain }}" target="_blank" class="btn btn-outline-primary btn-access">Open Quay ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="section-title mt-4">DevOps & Development</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header"><span class="icon-box text-warning"><i class="fa-brands fa-gitlab"></i></span> GitLab (SCM)</div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Admin:</strong> root / <span class="pass-code">{{ gitlab_root_password }}</span>
+                        </div>
+                        <div class="user-group-box">
+                            <div><strong>Platform Engs:</strong> pe1, pe2, pe3</div>
+                            <div><strong>Developers:</strong> dev1, dev2, dev3</div>
+                            <div class="mt-1"><i class="fa-solid fa-key small"></i> Common password: <span class="pass-code">backstage</span></div>
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="https://{{ gitlab_host }}" target="_blank" class="btn btn-outline-warning btn-access">Open GitLab ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100 border-primary">
+                    <div class="card-header bg-primary text-white"><span class="icon-box"><i class="fa-solid fa-code"></i></span> Red Hat Developer Hub</div>
+                    <div class="card-body">
+                        <div class="user-group-box bg-white border-start-0 ps-0">
+                            <div><strong>Platform Engs:</strong> pe1, pe2, pe3</div>
+                            <div><strong>Developers:</strong> dev1, dev2, dev3</div>
+                            <div class="mt-1"><i class="fa-solid fa-key small"></i> Common password: <span class="pass-code">backstage</span></div>
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ rhdh_url }}" target="_blank" class="btn btn-primary btn-access">Open IDP ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="section-title mt-4">Demo & GitOps</h4>
+        <div class="row">
+             <div class="col-md-6">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white"><span class="icon-box"><i class="fa-solid fa-building-columns"></i></span> NeuralBank App</div>
+                    <div class="card-body">
+                        <p class="mb-2 text-muted">NeuralBank Stack</p>
+                        
+                        <ul class="nav nav-tabs mb-2" id="usersTab" role="tablist">
+                          <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-1 px-2" id="us-tab" data-bs-toggle="tab" data-bs-target="#us" type="button" role="tab" aria-controls="us" aria-selected="true" style="font-size: 0.85rem;">🇺🇸 US</button>
+                          </li>
+                          <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-2" id="latam-tab" data-bs-toggle="tab" data-bs-target="#latam" type="button" role="tab" aria-controls="latam" aria-selected="false" style="font-size: 0.85rem;">🇲🇽 LATAM</button>
+                          </li>
+                          <li class="nav-item" role="presentation">
+                            <button class="nav-link py-1 px-2" id="eu-tab" data-bs-toggle="tab" data-bs-target="#eu" type="button" role="tab" aria-controls="eu" aria-selected="false" style="font-size: 0.85rem;">🇪🇺 EU</button>
+                          </li>
+                        </ul>
+
+                        <div class="tab-content" id="usersTabContent">
+                          <div class="tab-pane fade show active" id="us" role="tabpanel" aria-labelledby="us-tab">
+                            <div class="user-group-box">
+                                <div class="mb-1"><i class="fa-solid fa-user small"></i> <strong>robert.anderson@email.com</strong></div>
+                                <div><i class="fa-solid fa-building small"></i> <strong>contact@techcorp.com</strong></div>
+                            </div>
+                          </div>
+                          <div class="tab-pane fade" id="latam" role="tabpanel" aria-labelledby="latam-tab">
+                            <div class="user-group-box">
+                                <div class="mb-1"><i class="fa-solid fa-user small"></i> <strong>mario.gomez@email.com</strong></div>
+                                <div><i class="fa-solid fa-building small"></i> <strong>info@comercializadora.mx</strong></div>
+                            </div>
+                          </div>
+                          <div class="tab-pane fade" id="eu" role="tabpanel" aria-labelledby="eu-tab">
+                            <div class="user-group-box">
+                                <div class="mb-1"><i class="fa-solid fa-user small"></i> <strong>javier.rodriguez@email.com</strong></div>
+                                <div><i class="fa-solid fa-building small"></i> <strong>info@inversionesmadrid.es</strong></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="mt-2 text-center small">
+                            <i class="fa-solid fa-key"></i> Password: <span class="pass-code">{{ neuralbank_app_password }}</span>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ neuralbank_url }}" target="_blank" class="btn btn-success btn-access">Open App ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header"><span class="icon-box text-info"><i class="fa-solid fa-server"></i></span> ArgoCD (GitOps)</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fa-solid fa-user small text-muted"></i> <strong>{{ argocd_admin_user }}</strong></li>
+                            <li><i class="fa-solid fa-key small text-muted"></i> <span class="pass-code">{{ argocd_admin_password }}</span></li>
+                        </ul>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ argocd_url }}" target="_blank" class="btn btn-outline-info btn-access">Open ArgoCD ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

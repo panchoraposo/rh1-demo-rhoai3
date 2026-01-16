@@ -1,0 +1,2 @@
+- name: Create Dashboard
+  include_tasks: summary-dashboard.yaml
