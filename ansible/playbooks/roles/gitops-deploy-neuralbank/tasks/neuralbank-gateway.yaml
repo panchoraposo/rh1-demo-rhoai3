@@ -17,7 +17,6 @@
 
 - name: "Aprobar actualización de Service Mesh Operator"
   ansible.builtin.shell: |
-    # Busca InstallPlans en 'openshift-operators' que contengan 'servicemeshoperator3.v3.2' y estén pendientes
     for ip in $(oc get installplan -n openshift-operators -o json | jq -r '.items[] | select(.status.phase=="RequiresApproval") | select(.spec.clusterServiceVersionNames[] | contains("servicemeshoperator3.v3.2")) | .metadata.name'); do
       echo "Aprobando InstallPlan: $ip"
       oc patch installplan $ip -n openshift-operators --type merge --patch '{"spec":{"approved":true}}'
@@ -39,6 +38,7 @@
        | last).status.phase | default('') == "Succeeded"
   retries: 60
   delay: 10
+
 - name: "Crear namespace 'istio-system'"
   kubernetes.core.k8s:
     state: present
@@ -96,40 +96,35 @@
         destination: { server: https://kubernetes.default.svc }
         syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
 
-- name: "Esperar a que se cree el Deployment de Istiod"
+- name: "Esperar a que ArgoCD cree el recurso Istio (CR)"
   kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    name: istiod
+    api_version: sailoperator.io/v1
+    kind: Istio
+    name: default
     namespace: istio-system
-  register: istiod_check
-  until: istiod_check.resources | length > 0
+  register: istio_cr
+  until: istio_cr.resources | length > 0
   retries: 60
   delay: 5
 
-- name: "Parchar Istiod con configuración de OpenShift (Sail Operator Config)"
+- name: "Configurar Istio para soportar Gateway API en OpenShift"
   kubernetes.core.k8s:
     state: patched
-    kind: Deployment
-    name: istiod
+    api_version: sailoperator.io/v1
+    kind: Istio
+    name: default
     namespace: istio-system
     definition:
       spec:
-        template:
-          spec:
-            containers:
-              - name: discovery
-                env:
-                  - name: PILOT_ENABLE_GATEWAY_API_CA_CERT_ONLY
-                    value: "true"
-                  - name: PILOT_ENABLE_GATEWAY_API
-                    value: "true"
-                  - name: PILOT_ENABLE_GATEWAY_API_DEPLOYMENT_CONTROLLER
-                    value: "true"
-                  - name: PILOT_ENABLE_GATEWAY_API_STATUS
-                    value: "true"
+        values:
+          pilot:
+            env:
+              PILOT_ENABLE_GATEWAY_API_CA_CERT_ONLY: "true"
+              PILOT_ENABLE_GATEWAY_API: "true"
+              PILOT_ENABLE_GATEWAY_API_DEPLOYMENT_CONTROLLER: "true"
+              PILOT_ENABLE_GATEWAY_API_STATUS: "true"
 
-- name: "Esperar a que Istiod se reinicie y esté Running"
+- name: "Esperar a que el Sail Operator reinicie Istiod tras el parche"
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
@@ -140,19 +135,51 @@
   until:
     - istiod_pod.resources | length > 0
     - istiod_pod.resources[0].status.phase == 'Running'
-    - istiod_pod.resources[0].status.containerStatuses[0].ready == true
   retries: 60
   delay: 5
 
-- name: "Borrar Pods del Gateway para forzar reconexión con el nuevo Istiod"
+- name: "Escalar Gateway a 0"
   kubernetes.core.k8s:
-    state: absent
+    state: patched
+    kind: Deployment
+    name: neuralbank-gateway-istio
+    namespace: istio-system
+    definition:
+      spec: { replicas: 0 }
+  ignore_errors: yes
+
+- name: "Esperar a que terminen los pods del Gateway"
+  kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
     namespace: istio-system
     label_selectors:
       - app=neuralbank-gateway-istio
+  register: gw_pods
+  until: gw_pods.resources | length == 0
+  retries: 30
+  delay: 5
+
+- name: "Hard Reset: Borrar ServiceAccount y Secretos del Gateway"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+    namespace: istio-system
+  loop:
+    - { kind: 'ServiceAccount', name: 'neuralbank-gateway-istio' }
+    - { kind: 'Secret', name: 'istio-ca-secret' }
   ignore_errors: yes
+
+- name: "Iniciar Gateway (Escalar a 1)"
+  kubernetes.core.k8s:
+    state: patched
+    kind: Deployment
+    name: neuralbank-gateway-istio
+    namespace: istio-system
+    definition:
+      spec: { replicas: 1 }
 
 - name: "Esperar a que el Gateway esté Available"
   kubernetes.core.k8s_info:
