@@ -47,8 +47,15 @@
       kind: Namespace
       metadata:
         name: istio-system
-        labels:
-          istio-injection: disabled
+
+- name: "Crear namespace 'neuralbank' (Para Authorino)"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: neuralbank
 
 - name: "Asegurar que el directorio apps/service-mesh/base existe"
   ansible.builtin.file:
@@ -124,7 +131,7 @@
               PILOT_ENABLE_GATEWAY_API_DEPLOYMENT_CONTROLLER: "true"
               PILOT_ENABLE_GATEWAY_API_STATUS: "true"
 
-- name: "Esperar a que el Sail Operator reinicie Istiod tras el parche"
+- name: "Esperar a que Istiod se reinicie y esté Running"
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
@@ -135,10 +142,49 @@
   until:
     - istiod_pod.resources | length > 0
     - istiod_pod.resources[0].status.phase == 'Running'
+    - istiod_pod.resources[0].status.containerStatuses[0].ready == true
   retries: 60
   delay: 5
 
-- name: "Escalar Gateway a 0"
+- name: "Esperar a que Istiod genere el Secret 'istio-ca-secret'"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: istio-ca-secret
+    namespace: istio-system
+  register: ca_secret
+  until: ca_secret.resources | length > 0
+  retries: 60
+  delay: 5
+
+- name: "Asegurar existencia de 'istio-ca-root-cert' en istio-system"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: istio-ca-root-cert
+        namespace: istio-system
+        labels:
+          istio.io/config: "true"
+      data:
+        root-cert.pem: "{{ ca_secret.resources[0].data['ca-cert.pem'] | b64decode }}"
+  when: ca_secret.resources | length > 0
+
+- name: "Copiar CA Root a namespace 'neuralbank'"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: istio-ca-root-cert
+        namespace: neuralbank
+      data:
+        root-cert.pem: "{{ ca_secret.resources[0].data['ca-cert.pem'] | b64decode }}"
+
+- name: "DETENER Gateway (Escalar a 0)"
   kubernetes.core.k8s:
     state: patched
     kind: Deployment
@@ -148,29 +194,54 @@
       spec: { replicas: 0 }
   ignore_errors: yes
 
-- name: "Esperar a que terminen los pods del Gateway"
+- name: "Reiniciar Istiod (Flush de caché de certificados)"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Pod
+    namespace: istio-system
+    label_selectors:
+      - app=istiod
+
+- name: "Esperar a que Istiod vuelva a estar Running"
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
     namespace: istio-system
     label_selectors:
-      - app=neuralbank-gateway-istio
-  register: gw_pods
-  until: gw_pods.resources | length == 0
-  retries: 30
+      - app=istiod
+  register: istiod_restart
+  until:
+    - istiod_restart.resources | length > 0
+    - istiod_restart.resources[0].status.phase == 'Running'
+    - istiod_restart.resources[0].status.containerStatuses[0].ready == true
+  retries: 60
   delay: 5
 
-- name: "Hard Reset: Borrar ServiceAccount y Secretos del Gateway"
+- name: "Borrar ServiceAccount del Gateway (Forzar token nuevo)"
   kubernetes.core.k8s:
     state: absent
     api_version: v1
-    kind: "{{ item.kind }}"
-    name: "{{ item.name }}"
+    kind: ServiceAccount
+    name: neuralbank-gateway-istio
     namespace: istio-system
-  loop:
-    - { kind: 'ServiceAccount', name: 'neuralbank-gateway-istio' }
-    - { kind: 'Secret', name: 'istio-ca-secret' }
-  ignore_errors: yes
+
+- name: "Forzar Sync de ArgoCD (Regenerar ServiceAccount y Configs)"
+  ansible.builtin.shell: |
+    oc patch applications.argoproj.io neuralbank-gateway -n openshift-gitops --type merge -p '{"operation":{"sync":{"prune":true},"initiator":{"automated":false}}}'
+  register: argo_sync_trigger
+  changed_when: true
+
+- name: "Esperar a que el ServiceAccount se regenere"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ServiceAccount
+    name: neuralbank-gateway-istio
+    namespace: istio-system
+  register: sa_check
+  until: sa_check.resources | length > 0
+  retries: 60
+  delay: 3
 
 - name: "Iniciar Gateway (Escalar a 1)"
   kubernetes.core.k8s:
@@ -197,4 +268,4 @@
 
 - name: "✅ ÉXITO"
   ansible.builtin.debug:
-    msg: "Istiod parchado y Gateway conectado exitosamente."
+    msg: "Istiod reiniciado y Gateway conectado exitosamente."
