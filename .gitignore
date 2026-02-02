@@ -18,3 +18,4 @@
 *.pem
 *.key
 ansible/venv/
+venv/

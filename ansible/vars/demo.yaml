@@ -142,7 +142,7 @@ users_platform:
     first_name: Platform-Engineer
     last_name: Three
     password: '{{ common_user_password }}'
-realm_json_path: /tmp/developer-hub/backstage-realm.json
+realm_json_path: ./backstage-realm.json
 
 # --- Vault & External Secrets ---
 vault_namespace: vault
