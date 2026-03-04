@@ -16,7 +16,7 @@
     method: POST
     headers:
       Authorization: "Bearer {{ kc_token }}"
-    body: "{{ lookup('file', realm_json_path) | from_json }}"
+    body: "{{ lookup('file', playbook_dir + '/../../backstage-realm.json') | from_json }}"
     body_format: json
     status_code: 201
     validate_certs: false
