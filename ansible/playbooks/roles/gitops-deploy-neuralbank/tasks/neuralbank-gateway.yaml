@@ -252,20 +252,25 @@
     definition:
       spec: { replicas: 1 }
 
-- name: "Esperar a que el Gateway esté Available"
+- name: "Comprobar estado del Gateway (sin esperar)"
   kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
     name: neuralbank-gateway-istio
     namespace: istio-system
   register: gateway_deploy
-  until:
-    - gateway_deploy.resources | length > 0
-    - gateway_deploy.resources[0].status.readyReplicas is defined
-    - gateway_deploy.resources[0].status.readyReplicas >= 1
-  retries: 60
-  delay: 10
+  ignore_errors: true
 
-- name: "✅ ÉXITO"
+- name: "✅ ÉXITO - Gateway listo"
   ansible.builtin.debug:
     msg: "Istiod reiniciado y Gateway conectado exitosamente."
+  when: >
+    (gateway_deploy.resources | default([]) | length > 0) and
+    ((gateway_deploy.resources[0].status.readyReplicas | default(gateway_deploy.resources[0].status.availableReplicas | default(0))) >= 1)
+
+- name: "⚠️ Gateway (estado no verificado o en progreso)"
+  ansible.builtin.debug:
+    msg: "El playbook continúa sin esperar al Gateway. Si NeuralBank no responde, revisar: oc get pods -n istio-system -l gateway.networking.k8s.io/gateway-name=neuralbank-gateway"
+  when: >
+    (gateway_deploy.resources | default([]) | length == 0) or
+    ((gateway_deploy.resources[0].status.readyReplicas | default(gateway_deploy.resources[0].status.availableReplicas | default(0))) < 1)

@@ -133,7 +133,10 @@
       access_token: true
     status_code: [200, 201, 400]
   register: init_user_result
-  failed_when: init_user_result.status == 400 and 'Cannot re-initialize application' not in (init_user_result.json.error_message | default(''))
+  failed_when: >
+    init_user_result.status == 400 and
+    'Cannot re-initialize application' not in (init_user_result.json.error_message | default('')) and
+    'non-empty database' not in (init_user_result.json.message | default(''))
   retries: 10
   delay: 15
   no_log: false
@@ -155,13 +158,14 @@
     body: {}
     status_code: [200, 201]
   register: robot_account
+  when: quay_api_token is defined and quay_api_token | length > 0
 
 - name: "Capturar el token del robot de RHDH"
   ansible.builtin.set_fact:
     rhdh_robot_username: "{{ robot_account.json.name }}"
     rhdh_robot_token: "{{ robot_account.json.token }}"
   no_log: true
-  when: robot_account.json.token is defined
+  when: (robot_account.skipped | default(true)) == false and (robot_account.json.token | default('')) != ''
 
 - name: "Añadir el token del robot de RHDH al Secret 'backstage-env'"
   kubernetes.core.k8s:
@@ -173,4 +177,5 @@
     definition:
       stringData:
         QUAY_TOKEN: "{{ rhdh_robot_token }}"
+  when: rhdh_robot_token is defined and rhdh_robot_token | length > 0
 
