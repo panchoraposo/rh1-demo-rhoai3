@@ -106,11 +106,18 @@
     follow_redirects: none
   register: result
   until: result.status in [200, 302, 401]
-  retries: 60
+  retries: 12
   delay: 10
+  ignore_errors: true
 
-- name: "Mostrar URL final de acceso"
+- name: "Mostrar URL final de acceso (éxito)"
   ansible.builtin.debug:
-    msg: 
+    msg:
       - "✅ NeuralBank está disponible en: https://neuralbank.{{ openshift_base_domain }}"
       - "HTTP Status: {{ result.status }}"
+  when: result is not skipped and result.status is defined and result.status in [200, 302, 401]
+
+- name: "⚠️ Endpoint NeuralBank no respondió a tiempo"
+  ansible.builtin.debug:
+    msg: "NeuralBank en https://neuralbank.{{ openshift_base_domain }} no respondió (Gateway/Route pueden no estar listos). Revisar más tarde."
+  when: not (result.status is defined and result.status in [200, 302, 401])

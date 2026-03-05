@@ -17,8 +17,6 @@ spec:
       configMaps:
         - name: developer-hub-config
     replicas: 1
-    #deploymentStrategy:
-    #  type: Recreate
     route:
       enabled: true
   database:

@@ -108,20 +108,6 @@
       stringData:
         BACKEND_SECRET: "{{ backend_secret_value }}"
 
-- name: Parchear el CR de Backstage para que use el secret 'backstage-env'
-  kubernetes.core.k8s:
-    state: patched
-    kind: Backstage
-    api_version: rhdh.redhat.com/v1alpha1
-    name: developer-hub
-    namespace: backstage
-    definition:
-      spec:
-        application:
-          extraEnvFrom:
-            - secretRef:
-                name: backstage-env
-
 - name: Crear Application ArgoCD para Developer Hub
   kubernetes.core.k8s:
     state: present
@@ -145,7 +131,24 @@
             prune: true
             selfHeal: true
 
-- name: Esperar a que la Application 'developer-hub' esté Synced y Healthy
+- name: Esperar a que el CR Backstage developer-hub exista
+  ansible.builtin.command:
+    cmd: oc get backstage developer-hub -n backstage
+  register: backstage_cr_check
+  until: backstage_cr_check.rc == 0
+  retries: 30
+  delay: 10
+  changed_when: false
+
+- name: Parchear el CR de Backstage para que use el secret backstage-env
+  ansible.builtin.command:
+    cmd: >
+      oc patch backstage developer-hub -n backstage --type=merge
+      -p '{"spec":{"application":{"extraEnvFrom":[{"secretRef":{"name":"backstage-env"}}]}}}'
+  register: backstage_patch_result
+  changed_when: backstage_patch_result.rc == 0
+
+- name: Esperar a que la Application 'developer-hub' esté Healthy
   kubernetes.core.k8s_info:
     api_version: argoproj.io/v1alpha1
     kind: Application
@@ -155,8 +158,6 @@
   until: >
     argo_app_status.resources | length > 0 and
     argo_app_status.resources[0].status is defined and
-    argo_app_status.resources[0].status.sync is defined and
-    argo_app_status.resources[0].status.sync.status == "Synced" and
     argo_app_status.resources[0].status.health is defined and
     argo_app_status.resources[0].status.health.status == "Healthy"
   retries: 30

@@ -37,7 +37,7 @@
 
 - name: Consolidar variables finales
   ansible.builtin.set_fact:
-    argocd_url: "https://{{ argocd_route_res.resources[0].spec.host }}"
+    argocd_url: "https://{{ argocd_route_res.resources[0].spec.host if (argocd_route_res.resources | length > 0) else ('openshift-gitops-server-openshift-gitops.' + openshift_base_domain) }}"
     rhdh_url: "https://backstage-developer-hub-backstage.{{ openshift_base_domain }}/"
     neuralbank_url: "https://neuralbank.{{ openshift_base_domain }}/"
     dashboard_hostname: "dashboard.{{ openshift_base_domain }}"
