@@ -49,7 +49,6 @@ Before running the installation, ensure you have:
     -   `ansible` (Core)
         
 3.  **Configuration:** Ensure your `vars/demo.yaml` is populated with your specific domain and token details.
-    
 
 ## ⚙️ Installation Guide
 

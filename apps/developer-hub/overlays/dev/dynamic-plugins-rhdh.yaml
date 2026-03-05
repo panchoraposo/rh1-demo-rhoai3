@@ -21,7 +21,8 @@ data:
       ## --- RBAC_PLUGIN ---
       - package: ./dynamic-plugins/dist/backstage-community-plugin-rbac
         disabled: false
-      - package: ./dynamic-plugins/dist/roadiehq-scaffolder-backend-module-utils-dynamic
+      # RHDH 1.9: OCI para evitar install desde dist (versión compatible Backstage 1.42)
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-scaffolder-backend-module-utils:bs_1.42.5__4.0.0!roadiehq-scaffolder-backend-module-utils
         disabled: false
       ## --- GITLAB_PLUGIN ---
       - package: ./dynamic-plugins/dist/backstage-plugin-scaffolder-backend-module-gitlab-dynamic
