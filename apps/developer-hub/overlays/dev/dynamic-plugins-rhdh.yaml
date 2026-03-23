@@ -48,11 +48,14 @@ data:
       # Evitar duplicidad: el backend de Argo CD lo provee el plugin redhat-argocd-backend (OCI).
       # Si dejamos también el backend de RoadieHQ, Backstage falla con "Plugin 'argocd' is already registered".
       - package: ./dynamic-plugins/dist/roadiehq-backstage-plugin-argo-cd-backend-dynamic
-        disabled: true
+        disabled: false
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-backstage-plugin-argo-cd:bs_1.45.3__2.12.2!roadiehq-backstage-plugin-argo-cd
+        disabled: false
+      # Dejar estos en disabled para evitar duplicidad de pluginId `argocd`
       - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-redhat-argocd:bs_1.45.3__2.3.0!backstage-community-plugin-redhat-argocd
-        disabled: false
+        disabled: true
       - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-redhat-argocd-backend:bs_1.45.3__0.13.0!backstage-community-plugin-redhat-argocd-backend
-        disabled: false
+        disabled: true
       ## --- QUAY_PLUGIN ---
       # En RHDH 1.9, este módulo suele venir ya incluido por el catálogo por defecto;
       # si lo volvemos a agregar desde ./dist se duplica y rompe readiness con:

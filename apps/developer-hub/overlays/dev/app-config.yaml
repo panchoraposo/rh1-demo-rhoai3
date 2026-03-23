@@ -113,3 +113,17 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: backstage.io/kubernetes-id
                 - hasAnnotation: backstage.io/kubernetes-namespace
+    roadiehq.backstage-plugin-argo-cd:
+      mountPoints:
+        - mountPoint: entity.page.overview/cards
+          importName: EntityArgoCDHistoryCard
+          config:
+            layout:
+              gridColumnEnd:
+                lg: span 6
+                md: span 6
+                xs: span 12
+            if:
+              anyOf:
+                - hasAnnotation: argocd/app-name
+                - hasAnnotation: argocd/app-selector
