@@ -71,9 +71,8 @@ permission:
         - name: user:default/pe1
         - name: user:default/pe2
         - name: user:default/pe3
-    conditionalPoliciesFile: /opt/app-root/src/rbac-conditional-policies.json
     policies-csv-file: /opt/app-root/src/rbac-policy.csv
-    policyFileReload: true
+    policyFileReload: false
 
 scaffolder:
   enabled: true
@@ -97,3 +96,20 @@ integrations:
 #      baseUrl: https://jenkins-jenkins.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
 #      username: ${JENKINS_USER}
 #      apiKey: ${JENKINS_TOKEN}
+
+# Monta la pestaña "CD" del plugin Argo CD (frontend).
+# En algunos escenarios el initContainer no fusiona `app-config.dynamic.yaml` de plugins instalados vía OCI,
+# por lo que lo declaramos explícitamente acá.
+dynamicPlugins:
+  frontend:
+    backstage-community.plugin-redhat-argocd:
+      mountPoints:
+        - mountPoint: entity.page.cd/cards
+          importName: ArgocdPage
+          config:
+            layout:
+              gridColumn: '1 / -1'
+            if:
+              anyOf:
+                - hasAnnotation: backstage.io/kubernetes-id
+                - hasAnnotation: backstage.io/kubernetes-namespace
