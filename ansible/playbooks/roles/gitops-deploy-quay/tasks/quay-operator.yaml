@@ -10,7 +10,7 @@
         namespace: openshift-gitops
       spec:
         project: default
-        source: { repoURL: "{{ gitops_repo }}", targetRevision: main, path: apps/quay-operator/overlays/dev }
+        source: { repoURL: "{{ gitops_repo }}", targetRevision: "{{ gitops_target_revision }}", path: apps/quay-operator/overlays/dev }
         destination: { server: https://kubernetes.default.svc }
         syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
 

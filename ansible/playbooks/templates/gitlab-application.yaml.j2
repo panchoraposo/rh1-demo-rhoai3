@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: {{ gitops_repo }}
-    targetRevision: main
+    targetRevision: {{ gitops_target_revision }}
     path: apps/gitlab/chart
     helm:
       valueFiles:

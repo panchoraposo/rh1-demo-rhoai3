@@ -73,7 +73,7 @@
   ansible.builtin.git:
     repo: "{{ github_repo_url }}"
     dest: /tmp/developer-hub
-    version: main
+    version: "{{ github_repo_branch | default('main') }}"
     force: yes
   environment:
     GIT_SSL_NO_VERIFY: "{{ 'true' if not validate_ssl_certs else 'false' }}"
@@ -119,8 +119,9 @@
 - name: Push del repo temporal al nuevo proyecto en GitLab
   ansible.builtin.shell: |
     cd /tmp/developer-hub
+    git checkout -B {{ developer_hub_target_revision | default('main') }}
     git remote set-url origin https://oauth2:{{ generated_pat_result.json.token }}@{{ gitlab_host | regex_replace('^https?://', '') }}/platform-engineers/developer-hub.git
-    git push origin main
+    git push origin HEAD:{{ developer_hub_target_revision | default('main') }}
     git push --tags
   environment:
     GIT_SSL_NO_VERIFY: "{{ 'true' if not validate_ssl_certs else 'false' }}"
@@ -141,7 +142,7 @@
   ansible.builtin.git:
     repo: "https://oauth2:{{ generated_pat_result.json.token }}@{{ gitlab_host | regex_replace('^https?://', '') }}/platform-engineers/developer-hub.git"
     dest: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}"
-    version: main
+    version: "{{ developer_hub_target_revision | default('main') }}"
     force: yes
   register: git_clone_result
   until: git_clone_result is succeeded

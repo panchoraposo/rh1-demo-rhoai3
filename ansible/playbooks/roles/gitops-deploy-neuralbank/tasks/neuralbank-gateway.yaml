@@ -98,7 +98,7 @@
         project: default
         source: 
           repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
-          targetRevision: main 
+          targetRevision: "{{ developer_hub_target_revision }}"
           path: apps/service-mesh/overlays/dev 
         destination: { server: https://kubernetes.default.svc }
         syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }

@@ -49,7 +49,7 @@
           project: default
           source: 
             repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
-            targetRevision: main 
+            targetRevision: "{{ developer_hub_target_revision }}"
             path: apps/connectivity-link-operator/overlays/dev 
           destination: 
             server: https://kubernetes.default.svc
@@ -149,7 +149,7 @@
           project: default
           source: 
             repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"
-            targetRevision: main 
+            targetRevision: "{{ developer_hub_target_revision }}"
             path: apps/connectivity-link-instance/overlays/dev 
           destination: 
             server: https://kubernetes.default.svc

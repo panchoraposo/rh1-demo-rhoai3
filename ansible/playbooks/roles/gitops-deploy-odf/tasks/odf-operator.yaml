@@ -10,7 +10,7 @@
         namespace: openshift-gitops
       spec:
         project: default
-        source: { repoURL: "{{ gitops_repo }}", targetRevision: main, path: apps/odf-operator/overlays/dev }
+        source: { repoURL: "{{ gitops_repo }}", targetRevision: "{{ gitops_target_revision }}", path: apps/odf-operator/overlays/dev }
         destination: { server: https://kubernetes.default.svc }
         syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
 
@@ -59,7 +59,7 @@
         namespace: openshift-gitops
       spec:
         project: default
-        source: { repoURL: "{{ gitops_repo }}", targetRevision: main, path: apps/odf-mcg/overlays/dev }
+        source: { repoURL: "{{ gitops_repo }}", targetRevision: "{{ gitops_target_revision }}", path: apps/odf-mcg/overlays/dev }
         destination: { server: https://kubernetes.default.svc }
         syncPolicy: { automated: { prune: true, selfHeal: true } }
         ignoreDifferences:

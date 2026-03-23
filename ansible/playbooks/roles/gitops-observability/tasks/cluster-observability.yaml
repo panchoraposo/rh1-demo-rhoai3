@@ -27,7 +27,7 @@
         source:
           repoURL: "{{ gitops_repo }}"
           path: "apps/cluster-observability-operator/overlays/dev"
-          targetRevision: "main"
+          targetRevision: "{{ gitops_target_revision }}"
           kustomize: {}
         syncPolicy:
           automated:
@@ -73,7 +73,7 @@
         source:
           repoURL: "{{ gitops_repo }}"
           path: "apps/ui-plugin/overlays/dev"
-          targetRevision: "main"
+          targetRevision: "{{ gitops_target_revision }}"
           kustomize: {}
         syncPolicy:
           automated:
