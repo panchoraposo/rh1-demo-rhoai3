@@ -66,6 +66,45 @@ dynamicPlugins:
             if:
               anyOf:
                 - isQuayAvailable
+    backstage-community.plugin-tekton:
+      translationResources:
+        - importName: tektonTranslations
+          ref: tektonTranslationRef
+      mountPoints:
+        - mountPoint: entity.page.ci/cards
+          importName: TektonCI
+          config:
+            layout:
+              gridColumn: 1 / -1
+            if:
+              anyOf:
+                - hasAnnotation: tekton.dev/cicd
+                - hasAnnotation: janus-idp.io/tekton
+    # Argo CD: en RHDH 1.9 no existe un tab "CD" por defecto.
+    # Montamos los cards en Overview (y evitamos la pestaña CI).
+    roadiehq.backstage-plugin-argo-cd:
+      mountPoints:
+        - mountPoint: entity.page.overview/cards
+          importName: EntityArgoCDOverviewCard
+          config:
+            layout:
+              gridColumn: 1 / -1
+            if:
+              anyOf:
+                - hasAnnotation: argocd/app-name
+                - hasAnnotation: argocd/app-selector
+        - mountPoint: entity.page.overview/cards
+          importName: EntityArgoCDHistoryCard
+          config:
+            layout:
+              gridColumnEnd:
+                lg: span 6
+                md: span 6
+                xs: span 12
+            if:
+              anyOf:
+                - hasAnnotation: argocd/app-name
+                - hasAnnotation: argocd/app-selector
     backstage-community.plugin-ocm:
       appIcons:
         - name: ocmIcon
@@ -252,7 +291,7 @@ initContainers:
       runAsNonRoot: true
       seccompProfile:
         type: "RuntimeDefault"
-    image: 'registry.redhat.io/rhdh/rhdh-hub-rhel9'
+    image: '{{ backstage_image }}'
     command:
       - ./install-dynamic-plugins.sh
       - /dynamic-plugins-root

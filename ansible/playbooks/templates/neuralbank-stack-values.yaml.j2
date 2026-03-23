@@ -31,7 +31,7 @@ frontend:
 keycloak:
   issuerUrl: 'https://{{ keycloak_hostname }}/realms/neuralbank'
   clientId: 'neuralbank-frontend'
-  clientSecret: '{{ neuralbank_frontend_secret }}'
+  clientSecret: ''
   authorizationEndpoint: 'https://{{ keycloak_hostname }}/realms/neuralbank/protocol/openid-connect/auth'
   redirectUri: 'https://neuralbank.{{ openshift_base_domain }}/auth/callback'
   tokenEndpoint: 'https://{{ keycloak_hostname }}/realms/neuralbank/protocol/openid-connect/token'

@@ -135,8 +135,11 @@
   register: init_user_result
   failed_when: >
     init_user_result.status == 400 and
-    'Cannot re-initialize application' not in (init_user_result.json.error_message | default('')) and
-    'non-empty database' not in (init_user_result.json.message | default(''))
+    (
+      'Cannot re-initialize application' not in (init_user_result.json.error_message | default('')) and
+      'Cannot re-initialize application' not in (init_user_result.json.message | default('')) and
+      'Cannot initialize user in a non-empty database' not in (init_user_result.json.message | default(''))
+    )
   retries: 10
   delay: 15
   no_log: false
@@ -148,6 +151,7 @@
   no_log: false
 
 - name: "🤖 Crear cuenta de robot 'rhdh-reader' para Developer Hub"
+  when: quay_api_token is defined
   ansible.builtin.uri:
     url: "https://{{ quay_url }}/api/v1/user/robots/rhdh-reader"
     method: PUT
@@ -168,6 +172,7 @@
   when: (robot_account.skipped | default(true)) == false and (robot_account.json.token | default('')) != ''
 
 - name: "Añadir el token del robot de RHDH al Secret 'backstage-env'"
+  when: rhdh_robot_token is defined
   kubernetes.core.k8s:
     state: patched
     kind: Secret

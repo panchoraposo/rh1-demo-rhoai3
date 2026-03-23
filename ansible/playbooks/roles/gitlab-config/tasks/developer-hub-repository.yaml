@@ -64,14 +64,64 @@
   ansible.builtin.set_fact:
     developer_hub_project_id: "{{ create_project_result.json.id }}"
 
-- name: Clonar repo desde GitHub y hacer push al nuevo proyecto
+- name: Eliminar checkout temporal si existe
+  ansible.builtin.file:
+    path: /tmp/developer-hub
+    state: absent
+
+- name: Clonar repo fuente (GitHub) al checkout temporal
+  ansible.builtin.git:
+    repo: "{{ github_repo_url }}"
+    dest: /tmp/developer-hub
+    version: main
+    force: yes
+  environment:
+    GIT_SSL_NO_VERIFY: "{{ 'true' if not validate_ssl_certs else 'false' }}"
+  register: github_clone_result
+  until: github_clone_result is succeeded
+  retries: 10
+  delay: 10
+
+- name: Pinnear canal del Operator de RHDH a 1.9 (z-stream)
+  ansible.builtin.lineinfile:
+    path: /tmp/developer-hub/apps/developer-hub-operator/base/subscription.yaml
+    regexp: '^\\s*channel:\\s*.*$'
+    line: '  channel: fast-1.9'
+
+- name: Asegurar que Subscription de RHDH no tenga 'channel' duplicado (workaround)
   ansible.builtin.shell: |
-    rm -rf /tmp/developer-hub
-    git clone {{ github_repo_url }} /tmp/developer-hub
+    set -euo pipefail
+    python3 - <<'PY'
+    from pathlib import Path
+    p = Path("/tmp/developer-hub/apps/developer-hub-operator/base/subscription.yaml")
+    lines = p.read_text().splitlines()
+    out = []
+    seen = False
+    for line in lines:
+        if line.startswith("  channel:"):
+            if seen:
+                continue
+            seen = True
+            out.append("  channel: fast-1.9")
+        else:
+            out.append(line)
+    p.write_text("\n".join(out) + "\n")
+    PY
+  args:
+    executable: /bin/bash
+
+- name: Mantener installPlanApproval en Automatic (sin pasos manuales)
+  ansible.builtin.lineinfile:
+    path: /tmp/developer-hub/apps/developer-hub-operator/base/subscription.yaml
+    regexp: '^\\s*installPlanApproval:\\s*.*$'
+    line: '  installPlanApproval: Automatic'
+
+- name: Push del repo temporal al nuevo proyecto en GitLab
+  ansible.builtin.shell: |
     cd /tmp/developer-hub
     git remote set-url origin https://oauth2:{{ generated_pat_result.json.token }}@{{ gitlab_host | regex_replace('^https?://', '') }}/platform-engineers/developer-hub.git
     git push origin main
-      git push --tags
+    git push --tags
   environment:
     GIT_SSL_NO_VERIFY: "{{ 'true' if not validate_ssl_certs else 'false' }}"
   args:
@@ -97,6 +147,47 @@
   until: git_clone_result is succeeded
   retries: 10
   delay: 10
+
+- name: Pinnear canal del Operator de RHDH a 1.9 en el repo GitLab
+  ansible.builtin.lineinfile:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub-operator/base/subscription.yaml"
+    regexp: '^\\s*channel:\\s*.*$'
+    line: '  channel: fast-1.9'
+
+- name: Asegurar que Subscription de RHDH no tenga 'channel' duplicado en el repo GitLab (workaround)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 - <<'PY'
+    from pathlib import Path
+    p = Path("{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub-operator/base/subscription.yaml")
+    lines = p.read_text().splitlines()
+    out = []
+    seen = False
+    for line in lines:
+        if line.startswith("  channel:"):
+            if seen:
+                continue
+            seen = True
+            out.append("  channel: fast-1.9")
+        else:
+            out.append(line)
+    p.write_text("\n".join(out) + "\n")
+    PY
+  args:
+    executable: /bin/bash
+
+- name: Asegurar installPlanApproval Automatic en el repo GitLab
+  ansible.builtin.lineinfile:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub-operator/base/subscription.yaml"
+    regexp: '^\\s*installPlanApproval:\\s*.*$'
+    line: '  installPlanApproval: Automatic'
+
+- name: Pinnear imagen de RHDH (operand) a 1.9.x en el CR de Backstage
+  ansible.builtin.lineinfile:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub/base/developer-hub-instance.yaml"
+    insertafter: '^\\s*application:\\s*$'
+    regexp: '^\\s*image:\\s*.*$'
+    line: '    image: "{{ backstage_image }}"'
 
 - name: Obtener secreto de OAuth Client desde OpenShift
   kubernetes.core.k8s_info:
@@ -131,6 +222,8 @@
     git config user.name "Ansible Automation"
     git config user.email "ansible-automation@{{ gitlab_host | regex_replace('^https?://', '') }}"
     git add apps/developer-hub/overlays/dev/app-config.yaml
+    git add apps/developer-hub/base/developer-hub-instance.yaml
+    git add apps/developer-hub-operator/base/subscription.yaml
     git add software-templates/quarkus-mcp-template/template.yaml
 
     if ! git diff --cached --quiet; then

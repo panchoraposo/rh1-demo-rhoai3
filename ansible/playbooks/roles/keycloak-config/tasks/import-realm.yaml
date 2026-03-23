@@ -9,6 +9,21 @@
     validate_certs: false
   register: realm_exists
 
+- name: Validar que exista el archivo del realm a importar
+  when: realm_exists.status == 404
+  ansible.builtin.stat:
+    path: "{{ realm_json_path }}"
+  register: realm_json_file
+
+- name: Fallar si no existe el archivo del realm
+  when:
+    - realm_exists.status == 404
+    - not realm_json_file.stat.exists
+  ansible.builtin.fail:
+    msg: >-
+      No se encontró el archivo del realm en {{ realm_json_path }}.
+      Ajusta la variable realm_json_path (vars/demo.yaml) o asegúrate de que el archivo exista en esa ruta.
+
 - name: Importar realm
   when: realm_exists.status == 404
   uri:

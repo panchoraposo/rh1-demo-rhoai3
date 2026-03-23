@@ -146,6 +146,33 @@
   retries: 60
   delay: 5
 
+- name: "Obtener el Secret CA de Istio desde openshift-ingress (si existe)"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: istio-ca-secret
+    namespace: openshift-ingress
+  register: ingress_istio_ca_secret
+  failed_when: false
+
+- name: "Replicar el Secret CA de openshift-ingress en istio-system (evita mismatch de CA)"
+  when: ingress_istio_ca_secret.resources | default([]) | length > 0
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: istio-ca-secret
+        namespace: istio-system
+      type: "{{ ingress_istio_ca_secret.resources[0].type | default('istio.io/ca-root') }}"
+      data:
+        ca-cert.pem: "{{ ingress_istio_ca_secret.resources[0].data['ca-cert.pem'] | default('') }}"
+        ca-key.pem: "{{ ingress_istio_ca_secret.resources[0].data['ca-key.pem'] | default('') }}"
+        cert-chain.pem: "{{ ingress_istio_ca_secret.resources[0].data['cert-chain.pem'] | default('') }}"
+        key.pem: "{{ ingress_istio_ca_secret.resources[0].data['key.pem'] | default('') }}"
+        root-cert.pem: "{{ ingress_istio_ca_secret.resources[0].data['root-cert.pem'] | default('') }}"
+
 - name: "Esperar a que Istiod genere el Secret 'istio-ca-secret'"
   kubernetes.core.k8s_info:
     api_version: v1

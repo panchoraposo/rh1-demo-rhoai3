@@ -1,0 +1,20 @@
+apiVersion: noobaa.io/v1alpha1
+kind: BackingStore
+metadata:
+  name: noobaa-default-backing-store
+  namespace: openshift-storage
+spec:
+  type: pv-pool
+  pvPool:
+    # The default pv-pool (16Gi x 1) is too small for Quay blob uploads.
+    # This increases available capacity so Quay pushes don't fail with
+    # S3 multipart errors surfaced as "blob upload invalid".
+    numVolumes: 3
+    resources:
+      limits:
+        cpu: 100m
+        memory: 400Mi
+      requests:
+        cpu: 100m
+        memory: 400Mi
+        storage: 50Gi

@@ -4,6 +4,7 @@ metadata:
   name: developer-hub
 spec:
   application:
+    image: "registry.redhat.io/rhdh/rhdh-hub-rhel9:1.9.1"
     extraEnvs:
       secrets:
         - name: backstage-env

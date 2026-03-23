@@ -121,6 +121,12 @@
         destination:
           namespace: backstage
           server: "https://kubernetes.default.svc"
+        ignoreDifferences:
+          - group: rhdh.redhat.com
+            kind: Backstage
+            jsonPointers:
+              - /spec
+              - /status
         project: default
         source:
           repoURL: "https://{{ gitlab_host }}/platform-engineers/developer-hub.git"

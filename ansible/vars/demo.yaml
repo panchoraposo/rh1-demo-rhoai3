@@ -87,7 +87,9 @@ gitlab_oauth_client_secret: "{{ gitlab_oauth.json.secret }}"
 
 # --- General ---
 validate_ssl_certs: false
-backstage_image: registry.redhat.io/rhdh/rhdh-hub-rhel9
+#
+# RHDH 1.9.x (Backstage 1.45.3)
+backstage_image: registry.redhat.io/rhdh/rhdh-hub-rhel9:1.9.1
 
 # --- Keycloak ---
 keycloak_hostname: sso.{{ openshift_base_domain }}
@@ -142,7 +144,11 @@ users_platform:
     first_name: Platform-Engineer
     last_name: Three
     password: '{{ common_user_password }}'
-realm_json_path: ./backstage-realm.json
+realm_json_path: "{{ playbook_dir }}/../../backstage-realm.json"
+
+# --- NeuralBank ---
+# Se inyecta en el RealmImport para no depender del Admin API (evita 403 en algunos entornos)
+neuralbank_frontend_client_secret: "neuralbank-frontend-secret"
 
 # --- Vault & External Secrets ---
 vault_namespace: vault

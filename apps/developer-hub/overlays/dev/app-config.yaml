@@ -102,19 +102,31 @@ integrations:
 # por lo que lo declaramos explícitamente acá.
 dynamicPlugins:
   frontend:
-    backstage-community.plugin-redhat-argocd:
+    backstage-community.plugin-tekton:
+      translationResources:
+        - importName: tektonTranslations
+          ref: tektonTranslationRef
       mountPoints:
-        - mountPoint: entity.page.cd/cards
-          importName: ArgocdPage
+        - mountPoint: entity.page.ci/cards
+          importName: TektonCI
           config:
             layout:
-              gridColumn: '1 / -1'
+              gridColumn: 1 / -1
             if:
               anyOf:
-                - hasAnnotation: backstage.io/kubernetes-id
-                - hasAnnotation: backstage.io/kubernetes-namespace
+                - hasAnnotation: tekton.dev/cicd
+                - hasAnnotation: janus-idp.io/tekton
     roadiehq.backstage-plugin-argo-cd:
       mountPoints:
+        - mountPoint: entity.page.overview/cards
+          importName: EntityArgoCDOverviewCard
+          config:
+            layout:
+              gridColumn: 1 / -1
+            if:
+              anyOf:
+                - hasAnnotation: argocd/app-name
+                - hasAnnotation: argocd/app-selector
         - mountPoint: entity.page.overview/cards
           importName: EntityArgoCDHistoryCard
           config:
