@@ -93,7 +93,14 @@ data:
     p, role:default/plugins, topology.view.read, read, allow
     p, role:default/plugins, tekton.view.read, read, allow
     p, role:default/plugins, argocd.view.read, read, allow
+    p, role:default/plugins, adoption-insights.events.read, read, allow
     p, role:default/plugins, kubernetes.proxy, use, allow
+
+    # =================
+    # Adoption Insights
+    # =================
+    p, role:default/developer, adoption-insights.events.read, read, allow
+    p, role:default/platformengineer, adoption-insights.events.read, read, allow
 
     # =========================
     # Orchestrator / Workflows
@@ -129,9 +136,9 @@ data:
     g, group:default/platform-engineers, role:default/platformengineer
     g, group:default/developers, role:default/location_read_developer
     g, group:default/developers, role:default/developer
-    g, group:default/platformengineers, role:default/scaffolder_execute
-    g, group:default/platformengineers, role:default/plugins
+    g, group:default/platform-engineers, role:default/scaffolder_execute
+    g, group:default/platform-engineers, role:default/plugins
     g, group:default/developers, role:default/scaffolder_execute
     g, group:default/developers, role:default/plugins
     g, group:default/developers, role:default/workflowUser
-    g, group:default/platformengineers, role:default/workflowAdmin
+    g, group:default/platform-engineers, role:default/workflowAdmin

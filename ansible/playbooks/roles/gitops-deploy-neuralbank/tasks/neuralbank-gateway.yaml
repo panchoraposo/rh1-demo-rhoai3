@@ -17,24 +17,24 @@
 
 - name: "Aprobar actualización de Service Mesh Operator"
   ansible.builtin.shell: |
-    for ip in $(oc get installplan -n openshift-operators -o json | jq -r '.items[] | select(.status.phase=="RequiresApproval") | select(.spec.clusterServiceVersionNames[] | contains("servicemeshoperator3.v3.2")) | .metadata.name'); do
+    for ip in $(oc get installplan -n openshift-operators -o jsonpath='{range .items[?(@.status.phase=="RequiresApproval")]}{.metadata.name}{"\n"}{end}'); do
       echo "Aprobando InstallPlan: $ip"
       oc patch installplan $ip -n openshift-operators --type merge --patch '{"spec":{"approved":true}}'
     done
   register: approve_result
   changed_when: "'Aprobando' in approve_result.stdout"
 
-- name: "Esperar a que el CSV de Service Mesh v3.2 esté instalado"
+- name: "Esperar a que el CSV de Service Mesh esté instalado (v3.x)"
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
     namespace: openshift-operators
   register: csv_list
-  until: 
-    - csv_list.resources | json_query("[?contains(metadata.name, 'servicemeshoperator3.v3.2')]") | length > 0
-    - (csv_list.resources 
-       | json_query("[?contains(metadata.name, 'servicemeshoperator3.v3.2')]") 
-       | sort(attribute='metadata.creationTimestamp') 
+  until:
+    - csv_list.resources | json_query("[?contains(metadata.name, 'servicemeshoperator3.v3.')]") | length > 0
+    - (csv_list.resources
+       | json_query("[?contains(metadata.name, 'servicemeshoperator3.v3.')]")
+       | sort(attribute='metadata.creationTimestamp')
        | last).status.phase | default('') == "Succeeded"
   retries: 60
   delay: 10
@@ -73,10 +73,11 @@
   ansible.builtin.shell: |
     git config user.name "Ansible Automation"
     git config user.email "ansible@demo.local"
+    git checkout -B {{ developer_hub_target_revision | default('main') }}
     git add apps/service-mesh/base/gateway-route.yaml
     if ! git diff --cached --quiet; then
       git commit -m "feat: Configure Service Mesh route via Ansible"
-      git push origin main
+      git push origin HEAD:{{ developer_hub_target_revision | default('main') }}
     else
       echo "No changes"
     fi

@@ -1,0 +1,12 @@
+- hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../vars/demo.yaml
+
+  roles:
+    - role: openshift-config
+    - role: gitops-config
+    - role: gitops-deploy-gitlab
+    - role: gitlab-config
+    - role: gitops-deploy-developer-hub
+

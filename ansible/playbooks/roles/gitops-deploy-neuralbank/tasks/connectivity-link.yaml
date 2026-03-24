@@ -128,10 +128,11 @@
       git config user.name "Ansible Automation"
       git config user.email "ansible@demo.local"
       cd "{{ local_repo_path }}"
+      git checkout -B {{ developer_hub_target_revision | default('main') }}
       git add apps/connectivity-link-instance/base/
       if ! git diff --cached --quiet; then
           git commit -m "feat: Update CL manifests"
-          git push origin main
+          git push origin HEAD:{{ developer_hub_target_revision | default('main') }}
       fi
     environment:
       GIT_SSL_NO_VERIFY: "true"

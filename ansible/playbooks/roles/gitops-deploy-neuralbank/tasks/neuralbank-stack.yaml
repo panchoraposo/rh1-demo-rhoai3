@@ -15,10 +15,11 @@
 
 - name: "Git Workflow: Commit y Push NeuralBank"
   ansible.builtin.shell: |
+    git checkout -B {{ developer_hub_target_revision | default('main') }}
     git add apps/neuralbank-stack/values.yaml
     if ! git diff --cached --quiet; then
       git commit -m "feat: Configure NeuralBank values with OIDC secrets"
-      git push origin main
+      git push origin HEAD:{{ developer_hub_target_revision | default('main') }}
     else
       echo "No changes to commit"
     fi

@@ -116,10 +116,10 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: tekton.dev/cicd
                 - hasAnnotation: janus-idp.io/tekton
-    roadiehq.backstage-plugin-argo-cd:
+    backstage-community.plugin-redhat-argocd:
       mountPoints:
         - mountPoint: entity.page.overview/cards
-          importName: EntityArgoCDOverviewCard
+          importName: ArgocdDeploymentSummary
           config:
             layout:
               gridColumn: 1 / -1
@@ -128,13 +128,10 @@ dynamicPlugins:
                 - hasAnnotation: argocd/app-name
                 - hasAnnotation: argocd/app-selector
         - mountPoint: entity.page.overview/cards
-          importName: EntityArgoCDHistoryCard
+          importName: ArgocdDeploymentLifecycle
           config:
             layout:
-              gridColumnEnd:
-                lg: span 6
-                md: span 6
-                xs: span 12
+              gridColumn: 1 / -1
             if:
               anyOf:
                 - hasAnnotation: argocd/app-name

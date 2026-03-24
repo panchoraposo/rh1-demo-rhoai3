@@ -48,8 +48,8 @@
     pod: vault-0
     command: >
       /bin/sh -c 'vault write auth/kubernetes/role/external-secrets
-      bound_service_account_names=external-secrets-operator-controller-manager
-      bound_service_account_namespaces={{ vault_namespace }}
+      bound_service_account_names={{ eso_sa_name }}
+      bound_service_account_namespaces={{ eso_namespace }}
       policies=rhdh-secrets
       ttl=24h'
   environment:

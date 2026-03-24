@@ -217,19 +217,44 @@
     lstrip_blocks: false
     trim_blocks: false
 
+- name: "Template Quarkus: evitar conflicto ArgoCD (usar solo argocd/app-selector)"
+  ansible.builtin.replace:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/software-templates/quarkus-mcp-template/skeleton/catalog-info.yaml"
+    regexp: '^\\s*argocd/app-name:.*\\n'
+    replace: ''
+
+- name: "RBAC: corregir nombre de grupo platform-engineers (si existe typo)"
+  ansible.builtin.replace:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub/overlays/dev/rbac-policy.yaml"
+    regexp: 'group:default/platformengineers'
+    replace: 'group:default/platform-engineers'
+
+- name: "RBAC: permitir lectura de Adoption Insights (plugins/dev/platformengineer)"
+  ansible.builtin.lineinfile:
+    path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub/overlays/dev/rbac-policy.yaml"
+    insertafter: '^\\s*p, role:default/plugins, argocd\\.view\\.read, read, allow\\s*$'
+    line: "{{ item }}"
+  loop:
+    - "    p, role:default/plugins, adoption-insights.events.read, read, allow"
+    - "    p, role:default/developer, adoption-insights.events.read, read, allow"
+    - "    p, role:default/platformengineer, adoption-insights.events.read, read, allow"
+
 - name: Commit de cambios
   ansible.builtin.shell: |
     cd {{ local_repo_path | default('/tmp/local_developer_hub_repo') }}
     git config user.name "Ansible Automation"
     git config user.email "ansible-automation@{{ gitlab_host | regex_replace('^https?://', '') }}"
+    git checkout -B {{ developer_hub_target_revision | default('main') }}
     git add apps/developer-hub/overlays/dev/app-config.yaml
+    git add apps/developer-hub/overlays/dev/rbac-policy.yaml
     git add apps/developer-hub/base/developer-hub-instance.yaml
     git add apps/developer-hub-operator/base/subscription.yaml
     git add software-templates/quarkus-mcp-template/template.yaml
+    git add software-templates/quarkus-mcp-template/skeleton/catalog-info.yaml
 
     if ! git diff --cached --quiet; then
       git commit -m "Update app-config.yaml and template.yaml for dev env by Ansible"
-      git push origin main
+      git push origin HEAD:{{ developer_hub_target_revision | default('main') }}
     else
       echo "No changes to commit"
     fi

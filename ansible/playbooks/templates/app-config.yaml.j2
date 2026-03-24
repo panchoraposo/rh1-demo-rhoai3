@@ -80,12 +80,12 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: tekton.dev/cicd
                 - hasAnnotation: janus-idp.io/tekton
-    # Argo CD: en RHDH 1.9 no existe un tab "CD" por defecto.
-    # Montamos los cards en Overview (y evitamos la pestaña CI).
-    roadiehq.backstage-plugin-argo-cd:
+    # Argo CD: plugin "Argo CD by Red Hat" (community).
+    # Nota: este plugin exporta componentes distintos al Roadie (no usa EntityArgoCD*Card).
+    backstage-community.plugin-redhat-argocd:
       mountPoints:
         - mountPoint: entity.page.overview/cards
-          importName: EntityArgoCDOverviewCard
+          importName: ArgocdDeploymentSummary
           config:
             layout:
               gridColumn: 1 / -1
@@ -94,13 +94,10 @@ dynamicPlugins:
                 - hasAnnotation: argocd/app-name
                 - hasAnnotation: argocd/app-selector
         - mountPoint: entity.page.overview/cards
-          importName: EntityArgoCDHistoryCard
+          importName: ArgocdDeploymentLifecycle
           config:
             layout:
-              gridColumnEnd:
-                lg: span 6
-                md: span 6
-                xs: span 12
+              gridColumn: 1 / -1
             if:
               anyOf:
                 - hasAnnotation: argocd/app-name
@@ -150,10 +147,10 @@ catalog:
   locations:
     # Quarkus MCP Template
     - type: url
-      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/main/software-templates/quarkus-mcp-template/template.yaml
+      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/{{ developer_hub_target_revision }}/software-templates/quarkus-mcp-template/template.yaml
     # Customer Service API
     - type: url
-      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/main/legacy-apps/customer-service/api/catalog-info.yaml
+      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/{{ developer_hub_target_revision }}/legacy-apps/customer-service/api/catalog-info.yaml
   
   providers:
     ## --- KEYCLOAK_CATALOG_PROVIDER ---
@@ -174,7 +171,7 @@ catalog:
     gitlab:
       default:
         host: {{ gitlab_hostname }}
-        branch: main
+        branch: {{ developer_hub_target_revision }}
         fallbackBranch: master
         skipForkedRepos: true
         entityFilename: catalog-info.yaml
@@ -228,12 +225,36 @@ kubernetes:
           serviceAccountToken: ${KUBERNETES_SA_TOKEN}
       type: config
   customResources:
+    # OpenShift Routes (Topology needs these to show app URLs)
+    - group: 'route.openshift.io'
+      apiVersion: 'v1'
+      plural: 'routes'
     - group: 'tekton.dev'
       apiVersion: 'v1'
       plural: 'pipelineruns'
     - group: 'tekton.dev'
       apiVersion: 'v1'
       plural: 'taskruns'
+    # External Secrets (metadata/status only; avoid showing Secret data)
+    - group: 'external-secrets.io'
+      apiVersion: 'v1'
+      plural: 'externalsecrets'
+    - group: 'external-secrets.io'
+      apiVersion: 'v1'
+      plural: 'secretstores'
+    # Vault Secrets Operator CRs (safe to show refs/status)
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultstaticsecrets'
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultdynamicsecrets'
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultconnections'
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultauths'
 
 extraEnvVars:
   - name: NODE_OPTIONS
@@ -278,12 +299,12 @@ initContainers:
   - name: install-dynamic-plugins
     resources:
       requests:
-        cpu: 250m
-        memory: 256Mi
+        cpu: 500m
+        memory: 512Mi
       limits:
-        cpu: 1000m
-        memory: 2.5Gi
-        ephemeral-storage: 5Gi
+        cpu: 2000m
+        memory: 4Gi
+        ephemeral-storage: 10Gi
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -293,8 +314,27 @@ initContainers:
         type: "RuntimeDefault"
     image: '{{ backstage_image }}'
     command:
-      - ./install-dynamic-plugins.sh
-      - /dynamic-plugins-root
+      - /bin/sh
+      - -lc
+      - |
+        set -e
+        mkdir -p /dynamic-plugins-root /opt/app-root/src/.npm/_cacache
+
+        # Restore caches (best-effort)
+        if [ -d /var/rhdh-cache/dynamic-plugins-root ] && [ "$(ls -A /var/rhdh-cache/dynamic-plugins-root 2>/dev/null || true)" != "" ]; then
+          cp -a /var/rhdh-cache/dynamic-plugins-root/. /dynamic-plugins-root/ || true
+        fi
+        if [ -d /var/rhdh-cache/npmcacache ] && [ "$(ls -A /var/rhdh-cache/npmcacache 2>/dev/null || true)" != "" ]; then
+          cp -a /var/rhdh-cache/npmcacache/. /opt/app-root/src/.npm/_cacache/ || true
+        fi
+
+        ./install-dynamic-plugins.sh /dynamic-plugins-root
+
+        # Save caches (best-effort)
+        mkdir -p /var/rhdh-cache/dynamic-plugins-root /var/rhdh-cache/npmcacache
+        rm -rf /var/rhdh-cache/dynamic-plugins-root/* /var/rhdh-cache/npmcacache/* 2>/dev/null || true
+        cp -a /dynamic-plugins-root/. /var/rhdh-cache/dynamic-plugins-root/ || true
+        cp -a /opt/app-root/src/.npm/_cacache/. /var/rhdh-cache/npmcacache/ || true
     env:
       - name: NPM_CONFIG_USERCONFIG
         value: /opt/app-root/src/.npmrc.dynamic-plugins
@@ -317,4 +357,3 @@ initContainers:
         readOnly: true
       - mountPath: /opt/app-root/src/.npm/_cacache
         name: npmcacache
-    workingDir: /opt/app-root/src

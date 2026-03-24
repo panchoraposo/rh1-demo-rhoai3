@@ -163,15 +163,17 @@ scc_name: anyuid
 vault_label_selector: "app.kubernetes.io/name=vault"
 vault_addr: "https://127.0.0.1:8200"
 vault_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
-eso_namespace: vault
-eso_sa_name: external-secrets-operator-controller-manager
+#
+# External Secrets Operator for Red Hat OpenShift (OLM + operand)
+eso_operator_namespace: external-secrets-operator
+eso_namespace: external-secrets
+eso_sa_name: external-secrets
+eso_subscription_name: openshift-external-secrets-operator
+eso_subscription_channel: stable-v1
+eso_subscription_source: redhat-operators
+eso_subscription_source_namespace: openshift-marketplace
 vault_k8s_role_name: external-secrets
 vault_sa_name: vault
-helm_repo_name: external-secrets
-helm_repo_url: https://charts.external-secrets.io
-helm_release_name: external-secrets
-chart_name: external-secrets/external-secrets
-service_account_name: external-secrets-operator-controller-manager
 kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('/home/' ~ (ansible_user | default('ansible')) ~ '/.kube/config', true) }}"
 
 # --- Observability ---
