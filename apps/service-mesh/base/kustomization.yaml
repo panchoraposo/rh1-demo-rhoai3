@@ -2,5 +2,3 @@ resources:
   - gateway.yaml
   - smcp-controlplane.yaml
   - gateway-route.yaml
-
-namespace: istio-system

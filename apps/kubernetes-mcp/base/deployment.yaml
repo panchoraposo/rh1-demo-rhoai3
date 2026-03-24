@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-mcp-server
+  namespace: istio-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubernetes-mcp-server
+  template:
+    metadata:
+      labels:
+        app: kubernetes-mcp-server
+    spec:
+      serviceAccountName: kubernetes-mcp-server
+      containers:
+        - name: mcp-server
+          image: quay.io/containers/kubernetes_mcp_server:latest
+          args:
+            - "--port=8080"
+            - "--config=/etc/mcp/mcp-osl-config.toml"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config-vol
+              mountPath: /etc/mcp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: config-vol
+          configMap:
+            name: kubernetes-mcp-config
+

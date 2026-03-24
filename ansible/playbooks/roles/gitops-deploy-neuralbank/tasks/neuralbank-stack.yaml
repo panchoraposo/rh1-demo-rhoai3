@@ -50,9 +50,6 @@
           server: https://kubernetes.default.svc
           namespace: neuralbank
         syncPolicy:
-          automated:
-            prune: true
-            selfHeal: true
           syncOptions:
             - CreateNamespace=true
 

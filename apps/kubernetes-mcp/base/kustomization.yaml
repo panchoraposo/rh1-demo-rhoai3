@@ -1,0 +1,7 @@
+resources:
+  - configmap.yaml
+  - serviceaccount.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+

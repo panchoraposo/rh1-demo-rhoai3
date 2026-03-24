@@ -1,0 +1,7 @@
+resources:
+  - namespace.yaml
+  - operator-group.yaml
+  - subscription.yaml
+  - llm-credentials-secret.yaml
+  - olsconfig.yaml
+

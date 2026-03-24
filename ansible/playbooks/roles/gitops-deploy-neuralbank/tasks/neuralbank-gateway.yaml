@@ -102,7 +102,7 @@
           targetRevision: "{{ developer_hub_target_revision }}"
           path: apps/service-mesh/overlays/dev 
         destination: { server: https://kubernetes.default.svc }
-        syncPolicy: { automated: { prune: true, selfHeal: true }, syncOptions: [ "CreateNamespace=true" ] }
+        syncPolicy: { syncOptions: [ "CreateNamespace=true" ] }
 
 - name: "Esperar a que ArgoCD cree el recurso Istio (CR)"
   kubernetes.core.k8s_info:
@@ -211,6 +211,21 @@
         namespace: neuralbank
       data:
         root-cert.pem: "{{ ca_secret.resources[0].data['ca-cert.pem'] | b64decode }}"
+
+- name: "Copiar CA Root a namespace 'ztunnel' (Ambient mode)"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: istio-ca-root-cert
+        namespace: ztunnel
+        labels:
+          istio.io/config: "true"
+      data:
+        root-cert.pem: "{{ ca_secret.resources[0].data['ca-cert.pem'] | b64decode }}"
+  when: ca_secret.resources | length > 0
 
 - name: "DETENER Gateway (Escalar a 0)"
   kubernetes.core.k8s:

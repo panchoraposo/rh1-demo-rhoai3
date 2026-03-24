@@ -154,11 +154,8 @@
             path: apps/connectivity-link-instance/overlays/dev 
           destination: 
             server: https://kubernetes.default.svc
-          syncPolicy: 
-            automated: 
-              prune: true
-              selfHeal: true
-            syncOptions: 
+          syncPolicy:
+            syncOptions:
               - CreateNamespace=true
   
   - name: "Esperar a que ArgoCD inicie la creación de recursos"

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-mcp-config
+  namespace: istio-system
+data:
+  mcp-osl-config.toml: |
+    toolsets = ["core","kiali"]
+    read_only = true
+
+    [toolset_configs.kiali]
+    url = "http://kiali.istio-system.svc.cluster.local:20001"
+    insecure = true
+

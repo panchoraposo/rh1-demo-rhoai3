@@ -1,0 +1,5 @@
+resources:
+  - subscription.yaml
+  - monitoring-clusterrolebinding.yaml
+  - kiali.yaml
+

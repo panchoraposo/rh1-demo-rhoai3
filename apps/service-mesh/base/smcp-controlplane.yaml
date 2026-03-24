@@ -2,8 +2,10 @@ kind: Istio
 apiVersion: sailoperator.io/v1
 metadata:
   name: default
+  namespace: istio-system
 spec:
   namespace: istio-system
+  profile: ambient
   updateStrategy:
     inactiveRevisionDeletionGracePeriodSeconds: 30
     type: InPlace
@@ -13,9 +15,30 @@ kind: IstioCNI
 apiVersion: sailoperator.io/v1
 metadata:
   name: default
+  namespace: istio-system
 spec:
   namespace: istio-system
+  profile: ambient
   version: v1.27.3
+---
+apiVersion: sailoperator.io/v1
+kind: ZTunnel
+metadata:
+  name: default
+  namespace: ztunnel
+spec:
+  namespace: ztunnel
+  profile: ambient
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-cni
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ztunnel
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -31,6 +54,9 @@ rules:
   - istiocnis
   - istiocnis/finalizers
   - istiocnis/status 
+  - ztunnels
+  - ztunnels/finalizers
+  - ztunnels/status
   verbs:
   - create
   - delete
