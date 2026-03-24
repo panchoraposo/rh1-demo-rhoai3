@@ -15,6 +15,11 @@ data:
         disabled: false
       - package: ./dynamic-plugins/dist/backstage-community-plugin-tekton
         disabled: false
+      ## --- TECH_RADAR_PLUGIN ---
+      - package: ./dynamic-plugins/dist/backstage-community-plugin-tech-radar
+        disabled: false
+      - package: ./dynamic-plugins/dist/backstage-community-plugin-tech-radar-backend-dynamic
+        disabled: false
       ## --- KEYCLOAK_PLUGIN ---
       - package: ./dynamic-plugins/dist/backstage-community-plugin-catalog-backend-module-keycloak-dynamic
         disabled: false

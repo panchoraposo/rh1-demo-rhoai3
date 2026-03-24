@@ -1,0 +1,185 @@
+{
+  "title": "Demo platform tech radar",
+  "quadrants": [
+    { "id": "platform", "name": "Platform" },
+    { "id": "cicd", "name": "CI/CD" },
+    { "id": "security", "name": "Security & Identity" },
+    { "id": "observability", "name": "Observability" }
+  ],
+  "rings": [
+    { "id": "adopt", "name": "ADOPT", "color": "#93c47d" },
+    { "id": "trial", "name": "TRIAL", "color": "#93d2c2" },
+    { "id": "assess", "name": "ASSESS", "color": "#fbdb84" },
+    { "id": "hold", "name": "HOLD", "color": "#efafa9" }
+  ],
+  "entries": [
+    {
+      "id": "openshift",
+      "title": "OpenShift",
+      "key": "openshift",
+      "quadrant": "platform",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Base platform for workloads, operators, and GitOps."
+        }
+      ]
+    },
+    {
+      "id": "rhdh",
+      "title": "Red Hat Developer Hub (Backstage)",
+      "key": "rhdh",
+      "quadrant": "platform",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Developer portal for templates, catalog, TechDocs, and plugins."
+        }
+      ]
+    },
+    {
+      "id": "argocd",
+      "title": "OpenShift GitOps (Argo CD)",
+      "key": "argocd",
+      "quadrant": "cicd",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "GitOps delivery of platform and application resources."
+        }
+      ]
+    },
+    {
+      "id": "tekton",
+      "title": "OpenShift Pipelines (Tekton)",
+      "key": "tekton",
+      "quadrant": "cicd",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "CI pipelines for build/test/deploy; integrates with GitOps."
+        }
+      ]
+    },
+    {
+      "id": "gitlab",
+      "title": "GitLab (SCM + CI)",
+      "key": "gitlab",
+      "quadrant": "cicd",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Source control, merge requests, and CI (TechDocs pipelines)."
+        }
+      ]
+    },
+    {
+      "id": "quay",
+      "title": "Quay",
+      "key": "quay",
+      "quadrant": "platform",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Container registry with security scanning and robot accounts."
+        }
+      ]
+    },
+    {
+      "id": "vault",
+      "title": "Vault",
+      "key": "vault",
+      "quadrant": "security",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Secrets management for platform and applications."
+        }
+      ]
+    },
+    {
+      "id": "external-secrets",
+      "title": "External Secrets Operator",
+      "key": "external-secrets",
+      "quadrant": "security",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Sync secrets from Vault into Kubernetes namespaces."
+        }
+      ]
+    },
+    {
+      "id": "keycloak",
+      "title": "Keycloak (SSO / OIDC)",
+      "key": "keycloak",
+      "quadrant": "security",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-03-24",
+          "description": "Single sign-on for Developer Hub and platform services."
+        }
+      ]
+    },
+    {
+      "id": "tempo",
+      "title": "Tempo",
+      "key": "tempo",
+      "quadrant": "observability",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-03-24",
+          "description": "Distributed tracing for platform and application telemetry."
+        }
+      ]
+    },
+    {
+      "id": "loki",
+      "title": "Loki",
+      "key": "loki",
+      "quadrant": "observability",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-03-24",
+          "description": "Centralized logging pipeline for platform and apps."
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "title": "MCP (Developer Hub actions/tools)",
+      "key": "mcp",
+      "quadrant": "platform",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "assess",
+          "date": "2026-03-24",
+          "description": "IDE tooling integration for catalog and TechDocs queries."
+        }
+      ]
+    }
+  ]
+}

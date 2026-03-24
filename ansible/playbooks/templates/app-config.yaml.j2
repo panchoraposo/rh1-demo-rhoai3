@@ -139,6 +139,12 @@ dynamicPlugins:
               allOf:
                 - isKind: resource
                 - isType: kubernetes-cluster
+    backstage-community.plugin-tech-radar:
+      dynamicRoutes:
+        - path: /tech-radar
+          importName: TechRadarPage
+          menuItem:
+            text: Tech Radar
 
 catalog:
   rules:
@@ -207,6 +213,9 @@ techdocs:
   generator:
     runIn: local
 ## --- TECHDOCS_CONFIG ---
+
+techRadar:
+  url: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/{{ developer_hub_target_revision }}/docs/tech-radar/radar.json
 
 argocd:
   appLocatorMethods:

@@ -86,6 +86,9 @@ scaffolder:
     cookiecutter:
       cookiecutterCommand: cookiecutter
 
+techRadar:
+  url: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/tech-radar/radar.json
+
 integrations:
   gitlab:
     - apiBaseUrl: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/api/v4
@@ -139,3 +142,9 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: argocd/app-name
                 - hasAnnotation: argocd/app-selector
+    backstage-community.plugin-tech-radar:
+      dynamicRoutes:
+        - path: /tech-radar
+          importName: TechRadarPage
+          menuItem:
+            text: Tech Radar
