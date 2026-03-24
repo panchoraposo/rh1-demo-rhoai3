@@ -1,22 +1,53 @@
 ---
-- name: Obtener token de registro de runners (GitLab)
-  ansible.builtin.uri:
-    url: "https://{{ gitlab_host }}/api/v4/application/settings"
-    method: GET
-    headers:
-      PRIVATE-TOKEN: "{{ gitlab_pat }}"
-    return_content: true
-    status_code: [200, 502, 503]
-    validate_certs: "{{ validate_ssl_certs }}"
-  register: gitlab_app_settings
-  until: gitlab_app_settings.status == 200
-  retries: 10
-  delay: 10
+- name: Verificar si ya existe Secret del runner con token
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ gitlab_namespace | default('gitlab') }}"
+    name: "{{ gitlab_runner_secret_name | default('gitlab-runner') }}"
+  register: existing_runner_secret
+  failed_when: false
+
+- name: Capturar runner-token existente (si aplica)
+  ansible.builtin.set_fact:
+    gitlab_runner_token_existing: >-
+      {{
+        (
+          existing_runner_secret.resources[0].data['runner-token']
+          | default('')
+          | b64decode
+        ) if (existing_runner_secret.resources is defined and existing_runner_secret.resources | length > 0)
+        else ''
+      }}
   no_log: true
 
-- name: Capturar runners_registration_token
+- name: Crear runner (token moderno) vinculado al usuario root (GitLab 17+)
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/user/runners"
+    method: POST
+    headers:
+      PRIVATE-TOKEN: "{{ gitlab_pat }}"
+    body_format: form-urlencoded
+    body:
+      runner_type: instance_type
+      description: techdocs-runner
+      tag_list: docs
+      run_untagged: false
+      locked: false
+      access_level: not_protected
+    return_content: true
+    status_code: [201, 502, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: created_runner
+  until: created_runner.status == 201
+  retries: 10
+  delay: 10
+  when: gitlab_runner_token_existing | length == 0
+  no_log: true
+
+- name: Capturar runner-token a usar
   ansible.builtin.set_fact:
-    gitlab_runners_registration_token: "{{ gitlab_app_settings.json.runners_registration_token }}"
+    gitlab_runner_token: "{{ (gitlab_runner_token_existing if (gitlab_runner_token_existing | length > 0) else created_runner.json.token) }}"
   no_log: true
 
 - name: Crear/actualizar Secret para registro de GitLab Runner (sin runner-token)
@@ -30,8 +61,10 @@
         namespace: "{{ gitlab_namespace | default('gitlab') }}"
       type: Opaque
       stringData:
-        runner-registration-token: "{{ gitlab_runners_registration_token }}"
-        runner-token: ""
+        # En GitLab 17+ los registration tokens están deshabilitados por defecto.
+        # Usamos el runner authentication token (glrt-...) creado por POST /user/runners.
+        runner-registration-token: ""
+        runner-token: "{{ gitlab_runner_token }}"
   no_log: true
 
 - name: Asegurar repositorio Helm de GitLab Runner

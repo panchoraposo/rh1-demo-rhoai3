@@ -28,7 +28,7 @@ rendered_values_file: "/tmp/gitlab-values-rendered.yaml"
 helm_render_dir: "/tmp/gitlab-rendered"
 pat_name: "ansible-generated-pat"
 pat_name_rhdh: "ansible-generated-pat-rhdh"
-pat_scopes: ["api", "sudo"]
+pat_scopes: ["api", "sudo", "create_runner"]
 github_repo_url: "https://github.com/panchoraposo/rh1-demo-rhoai3"
 github_repo_branch: "{{ gitops_target_revision }}"
 developer_hub_target_revision: "{{ gitops_target_revision }}"
