@@ -36,6 +36,9 @@ catalog:
   locations:
     - type: url
       target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/components/artist-lookup-component.yaml
+    # Docs: MCP con Cursor (TechDocs)
+    - type: url
+      target: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
   rules:
     - allow: [Component, System, API, Resource, Location, Template, Domain]
   
