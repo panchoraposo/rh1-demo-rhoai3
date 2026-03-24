@@ -25,7 +25,7 @@ techdocs:
         echo "No mkdocs config file found (mkdocs.yml|mkdocs.yaml)."
         exit 1
       fi
-    - mkdocs build -f "$MKDOCS_FILE" -d site
+    - mkdocs build -f "$MKDOCS_FILE" -d "${CI_PROJECT_DIR}/site"
   artifacts:
     when: always
     expire_in: 7 days
