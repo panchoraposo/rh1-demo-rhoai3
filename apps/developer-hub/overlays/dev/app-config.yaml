@@ -2,112 +2,70 @@ app:
   title: Red Hat Developer Hub on OpenShift
 
 backend:
-  baseUrl: https://backstage-developer-hub-backstage.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
+  baseUrl: https://backstage-developer-hub-backstage.apps.ocp.l6vf4.sandbox744.opentlc.com
   listen:
     port: 7007
     host: 0.0.0.0
+  
+  auth:
+     externalAccess:
+       - type: static
+         options:
+           token: ${MCP_TOKEN}
+           subject: mcp-clients
 
-# --- AUTHENTICATION ---
-## Development configuration
-# auth:
-#   providers:
-#     guest:
-#      dangerouslyAllowOutsideDevelopment: true
+  actions:
+     pluginSources:
+       - software-catalog-mcp-tool
+       - techdocs-mcp-tool
 
-## Configuration required to enable OpenID Connect authentification
+## This is a development and testing authentication configuration
+#auth:
+#  providers:
+#    guest:
+#    dangerouslyAllowOutsideDevelopment: true
+
 auth:
-  #session:
-  #  secret: ${BACKEND_SECRET}
+  session:
+    secret: ${BACKEND_SECRET}
   environment: production
   providers:
     oidc:
       production:
         prompt: auto
-        metadataUrl: https://keycloak.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/realms/backstage/.well-known/openid-configuration
+        metadataUrl: https://sso.apps.ocp.l6vf4.sandbox744.opentlc.com/realms/backstage/.well-known/openid-configuration
         clientId: backstage
         clientSecret: ${OAUTH_CLIENT_SECRET}
         signIn:
           resolvers:
             - resolver: preferredUsernameMatchingUserEntityName
-
 signInPage: oidc
 
-catalog:
-  locations:
-    - type: url
-      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/components/artist-lookup-component.yaml
-    # Docs: MCP con Cursor (TechDocs)
-    - type: url
-      target: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
-  rules:
-    - allow: [Component, System, API, Resource, Location, Template, Domain]
-  
-  providers:
-  ## --- KEYCLOAK_CATALOG_PROVIDERS ---
-    keycloakOrg:
-      default:
-        baseUrl: https://keycloak.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
-        loginRealm: backstage
-        realm: backstage
-        clientId: backstage
-        clientSecret: ${OAUTH_CLIENT_SECRET}
-        schedule:
-          frequency: { minutes: 2 }
-          timeout: { minutes: 1 }
-          initialDelay: { seconds: 15}
-  ## --- KEYCLOAK_CATALOG_PROVIDERS ---
+quay:
+  uiUrl: https://quay.apps.ocp.l6vf4.sandbox744.opentlc.com
 
-## --- KEYCLOAK ---
-extraEnvVars:
-  - name: NODE_OPTIONS
-    value: --no-node-snapshot
-  - name: NODE_TLS_REJECT_UNAUTHORIZED
-    value: "0"
-## --- KEYCLOAK ---
+proxy:
+  endpoints:
+    '/quay/api':
+      target: 'https://quay.apps.ocp.l6vf4.sandbox744.opentlc.com'
+      headers:
+        X-Requested-With: 'XMLHttpRequest'
+        Authorization: 'Bearer ${QUAY_TOKEN}'
+      changeOrigin: true
+      secure: false
 
-## --- RBAC --- #
-permission:
-  enabled: true
-  rbac:
-    admin:
-      users:
-        - name: user:default/pe1
-        - name: user:default/pe2
-        - name: user:default/pe3
-    policies-csv-file: /opt/app-root/src/rbac-policy.csv
-    policyFileReload: false
-
-scaffolder:
-  enabled: true
-  defaultAuthor:
-    name: Red Hat Developer Hub
-    email: rhdh@example.com
-  templaters:
-    cookiecutter:
-      cookiecutterCommand: cookiecutter
-
-techRadar:
-  url: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/tech-radar/radar.json
-
-integrations:
-  gitlab:
-    - apiBaseUrl: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/api/v4
-      baseUrl: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
-      host: gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
-      token: ${GITLAB_TOKEN}
-
-#jenkins:
-#  instances:
-#    - name: default
-#      baseUrl: https://jenkins-jenkins.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}
-#      username: ${JENKINS_USER}
-#      apiKey: ${JENKINS_TOKEN}
-
-# Monta la pestaña "CD" del plugin Argo CD (frontend).
-# En algunos escenarios el initContainer no fusiona `app-config.dynamic.yaml` de plugins instalados vía OCI,
-# por lo que lo declaramos explícitamente acá.
 dynamicPlugins:
   frontend:
+    backstage-community.plugin-quay:
+      mountPoints:
+        - mountPoint: entity.page.image-registry/cards
+          importName: QuayPage
+          config:
+            layout:
+              gridColumn: 1 / -1
+            if:
+              anyOf:
+                - isQuayAvailable
     backstage-community.plugin-tekton:
       translationResources:
         - importName: tektonTranslations
@@ -122,6 +80,8 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: tekton.dev/cicd
                 - hasAnnotation: janus-idp.io/tekton
+    # Argo CD: plugin "Argo CD by Red Hat" (community).
+    # Nota: este plugin exporta componentes distintos al Roadie (no usa EntityArgoCD*Card).
     backstage-community.plugin-redhat-argocd:
       mountPoints:
         - mountPoint: entity.page.overview/cards
@@ -142,9 +102,271 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: argocd/app-name
                 - hasAnnotation: argocd/app-selector
+    backstage-community.plugin-ocm:
+      appIcons:
+        - name: ocmIcon
+          importName: OcmIcon
+      dynamicRoutes:
+        - path: /ocm
+          importName: OcmPage
+          menuItem:
+            icon: ocmIcon
+            text: Clusters
+      mountPoints:
+        - mountPoint: entity.page.overview/context
+          importName: ClusterContextProvider
+        - mountPoint: entity.page.overview/cards
+          importName: ClusterAvailableResourceCard
+          config:
+            layout:
+              gridColumnEnd:
+                lg: span 4
+                md: span 6
+                xs: span 12
+            if:
+              allOf:
+                - isKind: resource
+                - isType: kubernetes-cluster
+        - mountPoint: entity.page.overview/cards
+          importName: ClusterInfoCard
+          config:
+            layout:
+              gridColumnEnd:
+                lg: span 4
+                md: span 6
+                xs: span 12
+            if:
+              allOf:
+                - isKind: resource
+                - isType: kubernetes-cluster
     backstage-community.plugin-tech-radar:
       dynamicRoutes:
         - path: /tech-radar
           importName: TechRadarPage
           menuItem:
             text: Tech Radar
+
+catalog:
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template, Domain, User, Group]
+
+  locations:
+    # Quarkus MCP Template
+    - type: url
+      target: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/quarkus-mcp-template/template.yaml
+    # Docs: MCP con Cursor (TechDocs)
+    - type: url
+      target: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
+    # Customer Service API
+    - type: url
+      target: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/customer-service/api/catalog-info.yaml
+  
+  providers:
+    ## --- KEYCLOAK_CATALOG_PROVIDER ---
+    keycloakOrg:
+      default:
+        baseUrl: https://sso.apps.ocp.l6vf4.sandbox744.opentlc.com
+        loginRealm: backstage
+        realm: backstage
+        clientId: backstage
+        clientSecret: ${OAUTH_CLIENT_SECRET}
+        schedule:
+          frequency: { minutes: 2 }
+          timeout: { minutes: 1 }
+          initialDelay: { seconds: 15 }
+    ## --- KEYCLOAK_CATALOG_PROVIDER ---
+
+    ## --- GITLAB_CATALOG_PROVIDER ---
+    gitlab:
+      default:
+        host: gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com
+        branch: rhdh-1.9-baseline
+        fallbackBranch: master
+        skipForkedRepos: true
+        entityFilename: catalog-info.yaml
+        projectPattern: \w*techdocs\w*
+        schedule:
+          frequency: { minutes: 2 }
+          timeout: { minutes: 3 }
+          initialDelay: { seconds: 15 }
+    ## --- GITLAB_CATALOG_PROVIDER ---
+
+    ## --- 3SCALE_CATALOG_PROVIDER ---
+    threeScaleApiEntity:
+      default:
+        baseUrl: ${THREESCALE_BASE_URL}
+        accessToken: ${THREESCALE_ACCESS_TOKEN}
+    ## --- 3SCALE_CATALOG_PROVIDER ---
+
+    ocm:
+      default:
+        name: 'my-ocm-hub'
+        owner: 'group:default/platform-engineers'
+        url: 'https://api.openshift.com'
+        token: ${OCM_TOKEN}
+
+## --- TECHDOCS_CONFIG ---
+techdocs:
+  builder: 'local'
+  publisher:
+    type: 'local'
+  generator:
+    runIn: local
+## --- TECHDOCS_CONFIG ---
+
+techRadar:
+  url: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/tech-radar/radar.json
+
+argocd:
+  appLocatorMethods:
+    - type: 'config'
+      instances:
+        - name: main
+          url: https://openshift-gitops-server-openshift-gitops.apps.ocp.l6vf4.sandbox744.opentlc.com
+          username: admin
+          password: ${ARGOCD_PASSWORD}
+kubernetes:
+  serviceLocatorMethod:
+    type: multiTenant
+  clusterLocatorMethods:
+    - clusters:
+        - name: demo-cluster
+          url: https://api.ocp.l6vf4.sandbox744.opentlc.com:6443
+          authProvider: serviceAccount
+          skipTLSVerify: true
+          serviceAccountToken: ${KUBERNETES_SA_TOKEN}
+      type: config
+  customResources:
+    # OpenShift Routes (Topology needs these to show app URLs)
+    - group: 'route.openshift.io'
+      apiVersion: 'v1'
+      plural: 'routes'
+    - group: 'tekton.dev'
+      apiVersion: 'v1'
+      plural: 'pipelineruns'
+    - group: 'tekton.dev'
+      apiVersion: 'v1'
+      plural: 'taskruns'
+    # External Secrets (metadata/status only; avoid showing Secret data)
+    - group: 'external-secrets.io'
+      apiVersion: 'v1'
+      plural: 'externalsecrets'
+    - group: 'external-secrets.io'
+      apiVersion: 'v1'
+      plural: 'secretstores'
+    # Vault Secrets Operator CRs (safe to show refs/status)
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultstaticsecrets'
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultdynamicsecrets'
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultconnections'
+    - group: 'secrets.hashicorp.com'
+      apiVersion: 'v1beta1'
+      plural: 'vaultauths'
+
+extraEnvVars:
+  - name: NODE_OPTIONS
+    value: --no-node-snapshot
+  - name: NODE_TLS_REJECT_UNAUTHORIZED
+    value: "0"
+
+permission:
+  enabled: true
+  rbac:
+    admin:
+      users:
+        - name: user:default/pe1
+        - name: user:default/pe2
+        - name: user:default/pe3
+    conditionalPoliciesFile: /opt/app-root/src/rbac-conditional-policies.json
+    policies-csv-file: /opt/app-root/src/rbac-policy.csv
+    policyFileReload: true
+
+scaffolder:
+  enabled: true
+  defaultAuthor:
+    name: Red Hat Developer Hub
+    email: rhdh@example.com
+  allowedActions:
+    - fetch:template
+    - publish:gitlab
+    - catalog:register
+    - catalog:write
+    - argocd:create-resources
+  templaters:
+    cookiecutter:
+      cookiecutterCommand: cookiecutter
+
+integrations:
+  gitlab:
+    - apiBaseUrl: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/api/v4
+      baseUrl: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com
+      host: gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com
+      token: ${GITLAB_TOKEN}
+  
+initContainers:
+  - name: install-dynamic-plugins
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+        ephemeral-storage: 10Gi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      runAsNonRoot: true
+      seccompProfile:
+        type: "RuntimeDefault"
+    image: 'registry.redhat.io/rhdh/rhdh-hub-rhel9:1.9.1'
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -e
+        mkdir -p /dynamic-plugins-root /opt/app-root/src/.npm/_cacache
+
+        # Restore caches (best-effort)
+        if [ -d /var/rhdh-cache/dynamic-plugins-root ] && [ "$(ls -A /var/rhdh-cache/dynamic-plugins-root 2>/dev/null || true)" != "" ]; then
+          cp -a /var/rhdh-cache/dynamic-plugins-root/. /dynamic-plugins-root/ || true
+        fi
+        if [ -d /var/rhdh-cache/npmcacache ] && [ "$(ls -A /var/rhdh-cache/npmcacache 2>/dev/null || true)" != "" ]; then
+          cp -a /var/rhdh-cache/npmcacache/. /opt/app-root/src/.npm/_cacache/ || true
+        fi
+
+        ./install-dynamic-plugins.sh /dynamic-plugins-root
+
+        # Save caches (best-effort)
+        mkdir -p /var/rhdh-cache/dynamic-plugins-root /var/rhdh-cache/npmcacache
+        rm -rf /var/rhdh-cache/dynamic-plugins-root/* /var/rhdh-cache/npmcacache/* 2>/dev/null || true
+        cp -a /dynamic-plugins-root/. /var/rhdh-cache/dynamic-plugins-root/ || true
+        cp -a /opt/app-root/src/.npm/_cacache/. /var/rhdh-cache/npmcacache/ || true
+    env:
+      - name: NPM_CONFIG_USERCONFIG
+        value: /opt/app-root/src/.npmrc.dynamic-plugins
+      - name: MAX_ENTRY_SIZE
+        value: "30000000"
+    imagePullPolicy: Always
+    volumeMounts:
+      - mountPath: /dynamic-plugins-root
+        name: dynamic-plugins-root
+      - mountPath: /opt/app-root/src/dynamic-plugins.yaml
+        name: dynamic-plugins
+        readOnly: true
+        subPath: dynamic-plugins.yaml
+      - mountPath: /opt/app-root/src/.npmrc.dynamic-plugins
+        name: dynamic-plugins-npmrc
+        readOnly: true
+        subPath: .npmrc
+      - mountPath: /opt/app-root/src/.config/containers
+        name: dynamic-plugins-registry-auth
+        readOnly: true
+      - mountPath: /opt/app-root/src/.npm/_cacache
+        name: npmcacache
