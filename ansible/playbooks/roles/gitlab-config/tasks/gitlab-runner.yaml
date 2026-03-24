@@ -1,0 +1,80 @@
+---
+- name: Obtener token de registro de runners (GitLab)
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/application/settings"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ gitlab_pat }}"
+    return_content: true
+    status_code: [200, 502, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: gitlab_app_settings
+  until: gitlab_app_settings.status == 200
+  retries: 10
+  delay: 10
+  no_log: true
+
+- name: Capturar runners_registration_token
+  ansible.builtin.set_fact:
+    gitlab_runners_registration_token: "{{ gitlab_app_settings.json.runners_registration_token }}"
+  no_log: true
+
+- name: Crear/actualizar Secret para registro de GitLab Runner (sin runner-token)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ gitlab_runner_secret_name | default('gitlab-runner') }}"
+        namespace: "{{ gitlab_namespace | default('gitlab') }}"
+      type: Opaque
+      stringData:
+        runner-registration-token: "{{ gitlab_runners_registration_token }}"
+        runner-token: ""
+  no_log: true
+
+- name: Asegurar repositorio Helm de GitLab Runner
+  ansible.builtin.shell: |
+    set -euo pipefail
+    helm repo add gitlab https://charts.gitlab.io >/dev/null 2>&1 || true
+    helm repo update >/dev/null 2>&1 || true
+  args:
+    executable: /bin/bash
+
+- name: Instalar/actualizar GitLab Runner (Kubernetes executor) para TechDocs
+  ansible.builtin.shell: |
+    set -euo pipefail
+    helm upgrade --install {{ gitlab_runner_release_name | default('gitlab-runner') }} gitlab/gitlab-runner \
+      --namespace {{ gitlab_namespace | default('gitlab') }} \
+      --set gitlabUrl="https://{{ gitlab_host }}/" \
+      --set rbac.create=true \
+      --set serviceAccount.create=true \
+      --set serviceAccount.name="{{ gitlab_runner_sa_name | default('gitlab-runner') }}" \
+      --set runners.secret="{{ gitlab_runner_secret_name | default('gitlab-runner') }}" \
+      --set runners.tags="docs" \
+      --set runners.runUntagged=false
+  args:
+    executable: /bin/bash
+
+- name: Permitir anyuid SCC al ServiceAccount del runner (OpenShift)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    oc -n {{ gitlab_namespace | default('gitlab') }} adm policy add-scc-to-user anyuid -z {{ gitlab_runner_sa_name | default('gitlab-runner') }} >/dev/null 2>&1 || true
+  args:
+    executable: /bin/bash
+
+- name: Esperar que el deployment del runner esté Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ gitlab_namespace | default('gitlab') }}"
+    name: "{{ gitlab_runner_release_name | default('gitlab-runner') }}"
+  register: runner_deploy
+  until:
+    - runner_deploy.resources is defined
+    - runner_deploy.resources | length > 0
+    - (runner_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
+  retries: 30
+  delay: 10
+
