@@ -1,0 +1,5 @@
+site_name: MCP con Cursor (Developer Hub)
+nav:
+  - Inicio: index.md
+plugins:
+  - techdocs-core

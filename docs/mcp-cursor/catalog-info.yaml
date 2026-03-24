@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: developer-hub-mcp-cursor
+  title: MCP con Cursor (Developer Hub)
+  description: Guía rápida para conectar Cursor al servidor MCP de Red Hat Developer Hub.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: documentation
+  lifecycle: production
+  owner: group:default/platform-engineers
