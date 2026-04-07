@@ -1,5 +1,6 @@
 resources:
   - rolebinding.yaml
+  - authpolicy-jwt.yaml
   - kuadrant.yaml
   - neuralbank-route.yaml
   - ratelimit-policy-customers.yaml

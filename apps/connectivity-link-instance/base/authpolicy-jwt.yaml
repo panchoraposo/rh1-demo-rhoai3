@@ -1,0 +1,22 @@
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: neuralbank-api-jwt
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: neuralbank-api-route
+  rules:
+    authentication:
+      oidc:
+        credentials:
+          authorizationHeader:
+            prefix: Bearer
+          cookie:
+            name: jwt
+        jwt:
+          issuerUrl: https://sso.apps.ocp.l6vf4.sandbox744.opentlc.com/realms/neuralbank
+    response:
+      unauthenticated:
+        code: 401
