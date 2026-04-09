@@ -433,3 +433,154 @@ spec:
   system: neuralbank-platform
   definition:
     $text: ./proto-pricing.proto
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: retail-banking-api
+  title: Retail Banking API
+  description: Servicios de cuentas, saldos, transacciones y extractos.
+  tags: [java, quarkus, rest, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-retail-banking
+  providesApis:
+    - accounts-service
+    - transactions-service
+    - statements-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payments-api
+  title: Payments API
+  description: Servicios de pagos, transferencias y agenda de beneficiarios.
+  tags: [nodejs, rest, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-payments
+  providesApis:
+    - payments-service
+    - wire-transfers-service
+    - beneficiaries-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: cards-api
+  title: Cards API
+  description: Servicios de tarjetas, límites y controles operativos.
+  tags: [go, rest, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-cards
+  providesApis:
+    - cards-service
+    - limits-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: lending-api
+  title: Lending API
+  description: Productos de crédito y gestión de solicitudes de préstamos.
+  tags: [java, spring-boot, rest, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-lending
+  providesApis:
+    - loans-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: risk-and-compliance
+  title: Risk & Compliance
+  description: Servicios de KYC, eventos de fraude y decisiones de riesgo.
+  tags: [python, streaming, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-risk-and-compliance
+  providesApis:
+    - kyc-service
+    - fraud-events
+    - risk-scoring-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: investments-api
+  title: Investments API
+  description: Servicios de portafolio, órdenes y cotizaciones FX.
+  tags: [dotnet, rest, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-investments
+  providesApis:
+    - investments-service
+    - exchange-rates-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: digital-channels
+  title: Digital Channels
+  description: Onboarding digital, notificaciones y portal web.
+  tags: [react, web, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-digital-channels
+  providesApis:
+    - onboarding-service
+    - notifications-events
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: customer-portal
+  title: Customer Portal
+  description: Portal de clientes para banca minorista.
+  tags: [react, frontend, neuralbank]
+spec:
+  type: website
+  lifecycle: production
+  owner: group:default/developers
+  system: neuralbank-digital-channels
+  consumesApis:
+    - accounts-service
+    - transactions-service
+    - payments-service
+    - cards-service
+    - kyc-service
+    - investments-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: platform-core-grpc
+  title: Platform Core gRPC
+  description: Servicios transversales de plataforma expuestos por gRPC.
+  tags: [grpc, platform, neuralbank]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-platform
+  providesApis:
+    - ledger-grpc
+    - authz-grpc
+    - pricing-grpc
