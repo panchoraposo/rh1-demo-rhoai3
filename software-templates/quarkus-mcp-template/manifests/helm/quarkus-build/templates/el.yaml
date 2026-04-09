@@ -5,6 +5,7 @@ metadata:
   name: {{ include "quarkus-build.name" . }}-el
   labels:
     {{- include "quarkus-build.labels" . | nindent 4 }}
+    istio.io/dataplane-mode: none
 spec:
   serviceAccountName: pipeline
   triggers:
