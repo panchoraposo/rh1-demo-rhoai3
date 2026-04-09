@@ -20,7 +20,7 @@ spec:
         description:
           title: Description
           type: string
-          default: Neuralbank AI Assistant API
+          default: FastAPI AI Assistant API
         owner:
           title: Owner
           type: string
@@ -58,7 +58,7 @@ spec:
         description:
           title: Description
           type: string
-          default: Neuralbank Fraud Streaming
+          default: Kafka Streaming Service
         owner:
           title: Owner
           type: string
@@ -96,7 +96,7 @@ spec:
         description:
           title: Description
           type: string
-          default: Neuralbank gRPC service
+          default: gRPC Microservice
         owner:
           title: Owner
           type: string
@@ -134,7 +134,7 @@ spec:
         description:
           title: Description
           type: string
-          default: Neuralbank portal
+          default: React Frontend Portal
         owner:
           title: Owner
           type: string
@@ -145,6 +145,196 @@ spec:
       action: fetch:template
       input:
         url: ./neuralbank-frontend-portal/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: nodejs-express-rest-api
+  title: Node.js Express REST API
+  description: REST API scaffold built with Node.js and Express.
+  tags: [recommended, neuralbank, nodejs, express, rest]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: nodejs-express-api
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Node.js Express REST API
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./nodejs-express-rest-api/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: go-gin-rest-api
+  title: Go Gin REST API
+  description: REST API scaffold built with Go and Gin.
+  tags: [recommended, neuralbank, go, gin, rest]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: go-gin-api
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Go Gin REST API
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./go-gin-rest-api/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: dotnet-minimal-api
+  title: .NET Minimal API
+  description: Minimal API scaffold built with .NET.
+  tags: [recommended, neuralbank, dotnet, csharp, rest]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: dotnet-minimal-api
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: .NET Minimal API
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./dotnet-minimal-api/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: spring-boot-rest-api
+  title: Spring Boot REST API
+  description: REST API scaffold built with Spring Boot.
+  tags: [recommended, neuralbank, java, spring, spring-boot, rest]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: spring-boot-api
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Spring Boot REST API
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./spring-boot-rest-api/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: rust-actix-web-api
+  title: Rust Actix Web API
+  description: HTTP API scaffold built with Rust and Actix Web.
+  tags: [recommended, neuralbank, rust, actix, rest]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: rust-actix-api
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Rust Actix Web API
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./rust-actix-web-api/skeleton
         values:
           component_id: ${{ parameters.component_id }}
           description: ${{ parameters.description }}
