@@ -160,6 +160,12 @@ catalog:
     # Customer Service API
     - type: url
       target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/{{ developer_hub_target_revision }}/legacy-apps/customer-service/api/catalog-info.yaml
+    # Neuralbank: suite de APIs bancarias
+    - type: url
+      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/{{ developer_hub_target_revision }}/legacy-apps/neuralbank/catalog-info.yaml
+    # Templates: Neuralbank
+    - type: url
+      target: https://{{ gitlab_hostname }}/platform-engineers/developer-hub/-/blob/{{ developer_hub_target_revision }}/software-templates/neuralbank-demo-templates/catalog-info.yaml
   
   providers:
     ## --- KEYCLOAK_CATALOG_PROVIDER ---

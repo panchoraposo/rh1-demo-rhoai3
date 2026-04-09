@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Investments Service API
+  version: 1.0.0
+  description: API para portafolio, posiciones y órdenes.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/investments/portfolio:
+    get:
+      operationId: getPortfolio
+      summary: Obtiene el portafolio por customerId
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Portfolio' }
+  /v1/investments/orders:
+    post:
+      operationId: placeOrder
+      summary: Crea una orden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+    get:
+      operationId: listOrders
+      summary: Lista órdenes por customerId
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+components:
+  schemas:
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: number, format: double, example: 10250.55 }
+        currency: { type: string, example: USD }
+    Position:
+      type: object
+      required: [symbol, quantity, marketValue]
+      properties:
+        symbol: { type: string, example: 'NBANK' }
+        quantity: { type: number, format: double, example: 12.0 }
+        marketValue: { $ref: '#/components/schemas/Money' }
+        avgPrice: { type: number, format: double, example: 83.15 }
+    Portfolio:
+      type: object
+      required: [customerId, totalValue, positions]
+      properties:
+        customerId: { type: string, example: cust_10001 }
+        totalValue: { $ref: '#/components/schemas/Money' }
+        positions:
+          type: array
+          items: { $ref: '#/components/schemas/Position' }
+    CreateOrderRequest:
+      type: object
+      required: [customerId, symbol, side, quantity]
+      properties:
+        customerId: { type: string, example: cust_10001 }
+        symbol: { type: string, example: 'NBANK' }
+        side:
+          type: string
+          enum: [BUY, SELL]
+          example: BUY
+        quantity: { type: number, format: double, example: 10.0 }
+        orderType:
+          type: string
+          enum: [MARKET, LIMIT]
+          example: MARKET
+        limitPrice: { type: number, format: double, example: 82.50 }
+    Order:
+      type: object
+      required: [id, customerId, symbol, side, quantity, status, createdAt]
+      properties:
+        id: { type: string, example: ord_44001 }
+        customerId: { type: string, example: cust_10001 }
+        symbol: { type: string, example: 'NBANK' }
+        side: { type: string, enum: [BUY, SELL], example: BUY }
+        quantity: { type: number, format: double, example: 10.0 }
+        status:
+          type: string
+          enum: [CREATED, ACCEPTED, FILLED, REJECTED, CANCELLED]
+          example: ACCEPTED
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T12:10:00Z'

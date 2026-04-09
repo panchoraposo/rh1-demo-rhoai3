@@ -1,0 +1,424 @@
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: neuralbank
+  title: Neuralbank
+  description: Dominio de negocio del banco Neuralbank
+spec:
+  owner: group:default/platform-engineers
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank
+  title: Neuralbank
+  description: Sistema que agrupa APIs bancarias de Neuralbank
+  tags:
+    - neuralbank
+    - banking
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-retail-banking
+  title: Retail Banking
+  description: Capacidades de cuentas, saldos, movimientos, extractos y red de atención.
+  tags: [neuralbank, retail-banking]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-payments
+  title: Payments
+  description: Pagos, transferencias y beneficiarios.
+  tags: [neuralbank, payments]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-cards
+  title: Cards
+  description: Emisión y control de tarjetas, límites y gestión operativa.
+  tags: [neuralbank, cards]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-lending
+  title: Lending
+  description: Productos de crédito y ciclo de vida de préstamos.
+  tags: [neuralbank, lending]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-risk-and-compliance
+  title: Risk & Compliance
+  description: KYC/AML, prevención de fraude y decisiones de riesgo.
+  tags: [neuralbank, risk, compliance]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-investments
+  title: Investments
+  description: Portafolio, posiciones, órdenes y cotizaciones.
+  tags: [neuralbank, investments, fx]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-digital-channels
+  title: Digital Channels
+  description: Canales digitales, onboarding y comunicaciones con clientes.
+  tags: [neuralbank, channels]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: neuralbank-platform
+  title: Platform
+  description: Capacidades transversales (authorization, pricing, ledger).
+  tags: [neuralbank, platform]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: accounts-service
+  title: Accounts Service API
+  description: API para gestión de cuentas y saldos
+  tags: [openapi, neuralbank, banking]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-retail-banking
+  definition:
+    $text: ./openapi-accounts.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: transactions-service
+  title: Transactions Service API
+  description: API para consulta y búsqueda de transacciones
+  tags: [openapi, neuralbank, banking]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-retail-banking
+  definition:
+    $text: ./openapi-transactions.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: payments-service
+  title: Payments Service API
+  description: API para iniciar pagos y consultar su estado
+  tags: [openapi, neuralbank, banking]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-payments
+  definition:
+    $text: ./openapi-payments.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: cards-service
+  title: Cards Service API
+  description: API para tarjetas, límites y bloqueo/desbloqueo
+  tags: [openapi, neuralbank, banking]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-cards
+  definition:
+    $text: ./openapi-cards.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: loans-service
+  title: Loans Service API
+  description: API para préstamos (solicitudes, ofertas, estados)
+  tags: [openapi, neuralbank, banking]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-lending
+  definition:
+    $text: ./openapi-loans.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: kyc-service
+  title: KYC Service API
+  description: API para KYC/AML (verificación de identidad)
+  tags: [openapi, neuralbank, compliance]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-risk-and-compliance
+  definition:
+    $text: ./openapi-kyc.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: exchange-rates-service
+  title: Exchange Rates Service API
+  description: API de cotizaciones FX
+  tags: [openapi, neuralbank, fx]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-investments
+  definition:
+    $text: ./openapi-exchange-rates.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: fraud-events
+  title: Fraud Events API
+  description: API (event-driven) con alertas de fraude
+  tags: [asyncapi, neuralbank, fraud]
+spec:
+  type: asyncapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-risk-and-compliance
+  definition:
+    $text: ./asyncapi-fraud-events.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: notifications-events
+  title: Notifications Events API
+  description: API (event-driven) para notificaciones
+  tags: [asyncapi, neuralbank, notifications]
+spec:
+  type: asyncapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-digital-channels
+  definition:
+    $text: ./asyncapi-notifications-events.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: onboarding-service
+  title: Onboarding Service API
+  description: API para onboarding digital (alta de clientes)
+  tags: [openapi, neuralbank, onboarding]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-digital-channels
+  definition:
+    $text: ./openapi-onboarding.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: beneficiaries-service
+  title: Beneficiaries Service API
+  description: API para gestión de beneficiarios y agenda
+  tags: [openapi, neuralbank, payments]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-payments
+  definition:
+    $text: ./openapi-beneficiaries.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: statements-service
+  title: Statements Service API
+  description: API para extractos y estados de cuenta
+  tags: [openapi, neuralbank, banking]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-retail-banking
+  definition:
+    $text: ./openapi-statements.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: limits-service
+  title: Limits Service API
+  description: API para límites y controles
+  tags: [openapi, neuralbank, controls]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-cards
+  definition:
+    $text: ./openapi-limits.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: wire-transfers-service
+  title: Wire Transfers Service API
+  description: API para transferencias (wire) y tracking
+  tags: [openapi, neuralbank, transfers]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-payments
+  definition:
+    $text: ./openapi-wire-transfers.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: atm-locator-service
+  title: ATM Locator Service API
+  description: API para búsqueda de sucursales y ATM
+  tags: [openapi, neuralbank, locations]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-retail-banking
+  definition:
+    $text: ./openapi-atm-locator.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: merchant-offers-service
+  title: Merchant Offers Service API
+  description: API para ofertas y descuentos de comercios
+  tags: [openapi, neuralbank, offers]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-digital-channels
+  definition:
+    $text: ./openapi-merchant-offers.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: investments-service
+  title: Investments Service API
+  description: API para inversiones y portafolio
+  tags: [openapi, neuralbank, investments]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-investments
+  definition:
+    $text: ./openapi-investments.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: risk-scoring-service
+  title: Risk Scoring Service API
+  description: API para scoring de riesgo
+  tags: [openapi, neuralbank, risk]
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-risk-and-compliance
+  definition:
+    $text: ./openapi-risk-scoring.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ledger-grpc
+  title: Ledger gRPC API
+  description: API gRPC para asientos contables y postings
+  tags: [grpc, neuralbank, core]
+spec:
+  type: grpc
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-platform
+  definition:
+    $text: ./proto-ledger.proto
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: authz-grpc
+  title: Authorization gRPC API
+  description: API gRPC para autorización y entitlements
+  tags: [grpc, neuralbank, security]
+spec:
+  type: grpc
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-platform
+  definition:
+    $text: ./proto-authz.proto
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: pricing-grpc
+  title: Pricing gRPC API
+  description: API gRPC para pricing de productos y fees
+  tags: [grpc, neuralbank, pricing]
+spec:
+  type: grpc
+  lifecycle: production
+  owner: group:default/platform-engineers
+  system: neuralbank-platform
+  definition:
+    $text: ./proto-pricing.proto

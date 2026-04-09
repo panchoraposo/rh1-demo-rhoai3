@@ -1,0 +1,64 @@
+asyncapi: '2.6.0'
+info:
+  title: Neuralbank Notifications Events
+  version: 1.0.0
+  description: Eventos de notificaciones (push/email/sms).
+servers:
+  kafka:
+    url: kafka.neuralbank.example:9092
+    protocol: kafka
+    description: Broker Kafka
+channels:
+  neuralbank.notifications.outbound.v1:
+    publish:
+      operationId: publishOutboundNotification
+      summary: Publica una notificación saliente
+      message:
+        $ref: '#/components/messages/OutboundNotification'
+  neuralbank.notifications.delivery.v1:
+    subscribe:
+      operationId: subscribeNotificationDelivery
+      summary: Consume estados de entrega
+      message:
+        $ref: '#/components/messages/DeliveryUpdate'
+components:
+  messages:
+    OutboundNotification:
+      name: OutboundNotification
+      payload:
+        $ref: '#/components/schemas/OutboundNotificationPayload'
+    DeliveryUpdate:
+      name: DeliveryUpdate
+      payload:
+        $ref: '#/components/schemas/DeliveryUpdatePayload'
+  schemas:
+    OutboundNotificationPayload:
+      type: object
+      required: [notificationId, customerId, channel, template, createdAt]
+      properties:
+        notificationId: { type: string, example: notif_91001 }
+        customerId: { type: string, example: cust_10001 }
+        channel:
+          type: string
+          enum: [PUSH, EMAIL, SMS]
+          example: PUSH
+        template: { type: string, example: PAYMENT_RECEIVED }
+        locale: { type: string, example: es-AR }
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T12:01:00Z'
+    DeliveryUpdatePayload:
+      type: object
+      required: [notificationId, status, updatedAt]
+      properties:
+        notificationId: { type: string, example: notif_91001 }
+        status:
+          type: string
+          enum: [QUEUED, SENT, DELIVERED, FAILED]
+          example: DELIVERED
+        providerMessageId: { type: string, example: 'prov_abc123' }
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T12:02:10Z'

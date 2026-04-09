@@ -39,6 +39,15 @@ catalog:
     # Docs: MCP con Cursor (TechDocs)
     - type: url
       target: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
+    # Customer Service API
+    - type: url
+      target: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/customer-service/api/catalog-info.yaml
+    # Neuralbank: suite de APIs bancarias
+    - type: url
+      target: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/neuralbank/catalog-info.yaml
+    # Templates: Neuralbank
+    - type: url
+      target: https://gitlab-gitlab.${OPENSHIFT_CLUSTER_INGRESS_DOMAIN}/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/neuralbank-demo-templates/catalog-info.yaml
   rules:
     - allow: [Component, System, API, Resource, Location, Template, Domain]
   

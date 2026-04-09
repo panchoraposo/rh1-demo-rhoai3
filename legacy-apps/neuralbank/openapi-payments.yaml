@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Payments Service API
+  version: 1.0.0
+  description: API para iniciar pagos y consultar estados.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/payments:
+    post:
+      operationId: createPayment
+      summary: Crea un pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePaymentRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+    get:
+      operationId: listPayments
+      summary: Lista pagos por cuenta origen
+      parameters:
+        - in: query
+          name: fromAccountId
+          required: true
+          schema: { type: string, example: acc_20001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Payment' }
+  /v1/payments/{paymentId}:
+    get:
+      operationId: getPayment
+      summary: Obtiene un pago por ID
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema: { type: string, example: pay_30001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+components:
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required: [fromAccountId, to, amount, currency, reference]
+      properties:
+        fromAccountId: { type: string, example: acc_20001 }
+        to:
+          type: object
+          required: [type, id]
+          properties:
+            type:
+              type: string
+              enum: [ACCOUNT, IBAN, CARD]
+              example: IBAN
+            id: { type: string, example: 'ES9121000418450200051332' }
+        amount: { type: number, format: double, example: 125.50 }
+        currency: { type: string, example: USD }
+        reference: { type: string, example: Invoice 2026-04 }
+        idempotencyKey: { type: string, example: '8d5c2f35-1a2a-4b12-9a0c-3a45bfa4c2a1' }
+    Payment:
+      type: object
+      required: [id, status, createdAt, amount, currency, fromAccountId]
+      properties:
+        id: { type: string, example: pay_30001 }
+        fromAccountId: { type: string, example: acc_20001 }
+        status:
+          type: string
+          enum: [CREATED, ACCEPTED, SETTLED, REJECTED, CANCELLED]
+          example: ACCEPTED
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T10:00:00Z'
+        amount: { type: number, format: double, example: 125.50 }
+        currency: { type: string, example: USD }
+        reference: { type: string, example: Invoice 2026-04 }
+        rail:
+          type: string
+          enum: [INTERNAL, SEPA, ACH, RTP]
+          example: INTERNAL

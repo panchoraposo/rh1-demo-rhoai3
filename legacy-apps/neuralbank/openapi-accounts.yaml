@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Accounts Service API
+  version: 1.0.0
+  description: API para cuentas bancarias y saldos.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/accounts:
+    get:
+      operationId: listAccounts
+      summary: Lista cuentas de un cliente
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Account' }
+  /v1/accounts/{accountId}:
+    get:
+      operationId: getAccount
+      summary: Obtiene una cuenta por ID
+      parameters:
+        - in: path
+          name: accountId
+          required: true
+          schema: { type: string, example: acc_20001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+  /v1/accounts/{accountId}/balance:
+    get:
+      operationId: getBalance
+      summary: Obtiene saldo disponible y contable
+      parameters:
+        - in: path
+          name: accountId
+          required: true
+          schema: { type: string, example: acc_20001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Balance' }
+components:
+  schemas:
+    Account:
+      type: object
+      required: [id, customerId, currency, status]
+      properties:
+        id: { type: string, example: acc_20001 }
+        customerId: { type: string, example: cust_10001 }
+        product:
+          type: string
+          example: CHECKING
+          enum: [CHECKING, SAVINGS, CREDIT]
+        currency: { type: string, example: USD }
+        status:
+          type: string
+          example: ACTIVE
+          enum: [ACTIVE, FROZEN, CLOSED]
+        nickname: { type: string, example: Cuenta principal }
+        openedAt:
+          type: string
+          format: date-time
+          example: '2025-01-05T10:15:30Z'
+    Balance:
+      type: object
+      required: [accountId, available, ledger, currency, asOf]
+      properties:
+        accountId: { type: string, example: acc_20001 }
+        available: { type: number, format: double, example: 1520.75 }
+        ledger: { type: number, format: double, example: 1600.75 }
+        currency: { type: string, example: USD }
+        asOf:
+          type: string
+          format: date-time
+          example: '2026-04-09T12:00:00Z'

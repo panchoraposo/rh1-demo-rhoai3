@@ -10,5 +10,6 @@ spec:
   type: openapi
   lifecycle: production
   owner: group:default/platform-engineers
+  system: neuralbank
   definition:
     $text: ./openapi.yaml

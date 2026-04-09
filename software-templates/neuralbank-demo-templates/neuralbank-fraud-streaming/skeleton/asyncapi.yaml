@@ -1,0 +1,35 @@
+asyncapi: '2.6.0'
+info:
+  title: Neuralbank Fraud Streaming
+  version: 1.0.0
+servers:
+  kafka:
+    url: kafka.neuralbank.example:9092
+    protocol: kafka
+channels:
+  neuralbank.fraud.alerts.v1:
+    publish:
+      message:
+        payload:
+          type: object
+          properties:
+            alertId: { type: string }
+            severity: { type: string }
+asyncapi: '2.6.0'
+info:
+  title: Neuralbank Fraud Streaming
+  version: 1.0.0
+servers:
+  kafka:
+    url: kafka.neuralbank.example:9092
+    protocol: kafka
+channels:
+  neuralbank.fraud.alerts.v1:
+    publish:
+      message:
+        payload:
+          type: object
+          required: [alertId, severity]
+          properties:
+            alertId: { type: string }
+            severity: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }

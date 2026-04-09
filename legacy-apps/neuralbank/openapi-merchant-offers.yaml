@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Merchant Offers Service API
+  version: 1.0.0
+  description: API para ofertas y descuentos de comercios.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/offers:
+    get:
+      operationId: listOffers
+      summary: Lista ofertas disponibles
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [GROCERIES, DINING, TRAVEL, FUEL, ENTERTAINMENT, OTHER]
+            example: DINING
+        - in: query
+          name: cardBrand
+          schema:
+            type: string
+            enum: [VISA, MASTERCARD]
+            example: VISA
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 25 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Offer' }
+  /v1/offers/{offerId}:
+    get:
+      operationId: getOffer
+      summary: Obtiene una oferta por ID
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema: { type: string, example: offer_30001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Offer' }
+  /v1/offers/{offerId}/activate:
+    post:
+      operationId: activateOffer
+      summary: Activa una oferta para un customerId
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema: { type: string, example: offer_30001 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId]
+              properties:
+                customerId: { type: string, example: cust_10001 }
+      responses:
+        '202':
+          description: Accepted
+components:
+  schemas:
+    Offer:
+      type: object
+      required: [id, title, merchantName, category, benefit, validFrom, validTo]
+      properties:
+        id: { type: string, example: offer_30001 }
+        title: { type: string, example: '15% off en NeuralCoffee' }
+        merchantName: { type: string, example: NeuralCoffee }
+        category:
+          type: string
+          enum: [GROCERIES, DINING, TRAVEL, FUEL, ENTERTAINMENT, OTHER]
+          example: DINING
+        benefit:
+          type: object
+          required: [type, value]
+          properties:
+            type:
+              type: string
+              enum: [PERCENT, AMOUNT]
+              example: PERCENT
+            value: { type: number, format: double, example: 15.0 }
+            currency: { type: string, example: USD }
+        terms: { type: string, example: 'Tope mensual 30 USD. Válido 1 vez por semana.' }
+        validFrom: { type: string, format: date, example: '2026-04-01' }
+        validTo: { type: string, format: date, example: '2026-06-30' }

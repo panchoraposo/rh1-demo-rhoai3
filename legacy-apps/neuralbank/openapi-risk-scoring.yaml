@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Risk Scoring Service API
+  version: 1.0.0
+  description: API para scoring de riesgo (crédito/fraude) y explicaciones.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/risk/score:
+    post:
+      operationId: scoreRisk
+      summary: Calcula un score de riesgo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScoreRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScoreResponse' }
+  /v1/risk/decisions:
+    post:
+      operationId: riskDecision
+      summary: Emite una decisión (approve/review/deny)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecisionRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionResponse' }
+components:
+  schemas:
+    ScoreRequest:
+      type: object
+      required: [customerId, context]
+      properties:
+        customerId: { type: string, example: cust_10001 }
+        context:
+          type: string
+          enum: [CREDIT_APPLICATION, CARD_TRANSACTION, ACCOUNT_OPENING]
+          example: CREDIT_APPLICATION
+        amount: { type: number, format: double, example: 15000.00 }
+        currency: { type: string, example: USD }
+        features:
+          type: object
+          additionalProperties: true
+          example:
+            incomeMonthly: 2200
+            utilizationPct: 0.31
+            chargebacks12m: 0
+    ScoreResponse:
+      type: object
+      required: [score, band, modelVersion]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 1000, example: 712 }
+        band:
+          type: string
+          enum: [A, B, C, D, E]
+          example: B
+        modelVersion: { type: string, example: '2026-04' }
+        reasons:
+          type: array
+          items: { type: string }
+          example:
+            - 'Low utilization ratio'
+            - 'Stable income signals'
+    DecisionRequest:
+      type: object
+      required: [score, policy]
+      properties:
+        score: { type: integer, example: 712 }
+        policy: { type: string, example: LOAN_STD_V1 }
+    DecisionResponse:
+      type: object
+      required: [decision, requiredActions]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVE, REVIEW, DENY]
+          example: REVIEW
+        requiredActions:
+          type: array
+          items:
+            type: string
+            enum: [MANUAL_REVIEW, REQUEST_DOCS, STEP_UP_AUTH, NONE]
+          example: [REQUEST_DOCS]

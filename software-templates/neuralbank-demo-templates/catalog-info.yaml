@@ -1,0 +1,151 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: neuralbank-ai-assistant-api
+  title: Neuralbank AI Assistant API
+  description: AI Assistant API (Python/FastAPI) para Neuralbank.
+  tags: [recommended, neuralbank, ai, python]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: neuralbank-ai-assistant
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Neuralbank AI Assistant API
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./neuralbank-ai-assistant-api/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: neuralbank-fraud-streaming
+  title: Neuralbank Fraud Streaming
+  description: Servicio event-driven para detección de fraude (Kafka).
+  tags: [recommended, neuralbank, kafka, streaming]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: neuralbank-fraud-streaming
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Neuralbank Fraud Streaming
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./neuralbank-fraud-streaming/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: neuralbank-grpc-service
+  title: Neuralbank gRPC Service
+  description: Microservicio gRPC (proto-first) para Neuralbank.
+  tags: [recommended, neuralbank, grpc]
+spec:
+  owner: developers
+  type: service
+  parameters:
+    - title: Service basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: neuralbank-grpc-service
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Neuralbank gRPC service
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./neuralbank-grpc-service/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: neuralbank-frontend-portal
+  title: Neuralbank Frontend Portal
+  description: Frontend portal (React) para Neuralbank.
+  tags: [recommended, neuralbank, react, frontend]
+spec:
+  owner: developers
+  type: website
+  parameters:
+    - title: Site basics
+      required: [component_id, owner]
+      properties:
+        component_id:
+          title: Name
+          type: string
+          default: neuralbank-portal
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          default: Neuralbank portal
+        owner:
+          title: Owner
+          type: string
+          default: developers
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./neuralbank-frontend-portal/skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}

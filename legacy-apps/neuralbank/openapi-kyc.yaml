@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank KYC Service API
+  version: 1.0.0
+  description: API para KYC/AML (verificación de identidad).
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/kyc/cases:
+    post:
+      operationId: createKycCase
+      summary: Crea un caso KYC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateKycCaseRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KycCase' }
+    get:
+      operationId: listKycCases
+      summary: Lista casos por customerId
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/KycCase' }
+  /v1/kyc/cases/{caseId}:
+    get:
+      operationId: getKycCase
+      summary: Obtiene un caso por ID
+      parameters:
+        - in: path
+          name: caseId
+          required: true
+          schema: { type: string, example: kyc_60001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KycCase' }
+components:
+  schemas:
+    CreateKycCaseRequest:
+      type: object
+      required: [customerId, country, documentType, documentId]
+      properties:
+        customerId: { type: string, example: cust_10001 }
+        country: { type: string, example: AR }
+        documentType:
+          type: string
+          enum: [NATIONAL_ID, PASSPORT, DRIVER_LICENSE]
+          example: NATIONAL_ID
+        documentId: { type: string, example: '12345678' }
+        fullName: { type: string, example: 'Ada Lovelace' }
+        dateOfBirth: { type: string, format: date, example: '1990-01-15' }
+    KycCase:
+      type: object
+      required: [id, customerId, status, createdAt]
+      properties:
+        id: { type: string, example: kyc_60001 }
+        customerId: { type: string, example: cust_10001 }
+        status:
+          type: string
+          enum: [CREATED, IN_REVIEW, APPROVED, REJECTED]
+          example: IN_REVIEW
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T08:00:00Z'
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 27
+        notes: { type: string, example: 'Documento legible; validación pendiente.' }

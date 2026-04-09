@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.component_id }}
+  description: ${{ values.description }}
+  tags: [neuralbank, ai, python]
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/${{ values.owner }}
+  system: neuralbank-digital-channels
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.component_id }}
+  description: ${{ values.description }}
+  tags: [python, fastapi, neuralbank]
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: neuralbank

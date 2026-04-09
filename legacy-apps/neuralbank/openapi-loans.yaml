@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Loans Service API
+  version: 1.0.0
+  description: API para préstamos (solicitudes y seguimiento).
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/loans/applications:
+    post:
+      operationId: createLoanApplication
+      summary: Crea una solicitud de préstamo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLoanApplicationRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoanApplication' }
+    get:
+      operationId: listLoanApplications
+      summary: Lista solicitudes por customerId
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LoanApplication' }
+  /v1/loans/applications/{applicationId}:
+    get:
+      operationId: getLoanApplication
+      summary: Obtiene solicitud por ID
+      parameters:
+        - in: path
+          name: applicationId
+          required: true
+          schema: { type: string, example: loanapp_50001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoanApplication' }
+components:
+  schemas:
+    CreateLoanApplicationRequest:
+      type: object
+      required: [customerId, amount, currency, termMonths, purpose]
+      properties:
+        customerId: { type: string, example: cust_10001 }
+        amount: { type: number, format: double, example: 15000.00 }
+        currency: { type: string, example: USD }
+        termMonths: { type: integer, example: 36 }
+        purpose:
+          type: string
+          example: HOME_IMPROVEMENT
+          enum: [CAR, HOME_IMPROVEMENT, EDUCATION, CONSOLIDATION, OTHER]
+    LoanApplication:
+      type: object
+      required: [id, customerId, status, createdAt, amount, currency, termMonths]
+      properties:
+        id: { type: string, example: loanapp_50001 }
+        customerId: { type: string, example: cust_10001 }
+        status:
+          type: string
+          enum: [SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+          example: UNDER_REVIEW
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T09:30:00Z'
+        amount: { type: number, format: double, example: 15000.00 }
+        currency: { type: string, example: USD }
+        termMonths: { type: integer, example: 36 }
+        apr: { type: number, format: double, example: 11.9 }
+        offerExpiresAt:
+          type: string
+          format: date-time
+          example: '2026-04-20T00:00:00Z'

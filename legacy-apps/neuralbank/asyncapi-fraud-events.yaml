@@ -1,0 +1,65 @@
+asyncapi: '2.6.0'
+info:
+  title: Neuralbank Fraud Events
+  version: 1.0.0
+  description: Eventos de fraude (alertas, revisiones, resoluciones).
+servers:
+  kafka:
+    url: kafka.neuralbank.example:9092
+    protocol: kafka
+    description: Broker Kafka
+channels:
+  neuralbank.fraud.alerts.v1:
+    publish:
+      operationId: publishFraudAlert
+      summary: Publica una alerta de fraude
+      message:
+        $ref: '#/components/messages/FraudAlert'
+  neuralbank.fraud.cases.v1:
+    subscribe:
+      operationId: subscribeFraudCases
+      summary: Consume actualizaciones de casos de fraude
+      message:
+        $ref: '#/components/messages/FraudCaseUpdate'
+components:
+  messages:
+    FraudAlert:
+      name: FraudAlert
+      title: Fraud alert
+      payload:
+        $ref: '#/components/schemas/FraudAlertPayload'
+    FraudCaseUpdate:
+      name: FraudCaseUpdate
+      title: Fraud case update
+      payload:
+        $ref: '#/components/schemas/FraudCaseUpdatePayload'
+  schemas:
+    FraudAlertPayload:
+      type: object
+      required: [alertId, transactionId, severity, createdAt]
+      properties:
+        alertId: { type: string, example: alert_81001 }
+        transactionId: { type: string, example: txn_90001 }
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          example: HIGH
+        reasonCode: { type: string, example: VELOCITY_SPIKE }
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T11:22:33Z'
+    FraudCaseUpdatePayload:
+      type: object
+      required: [caseId, status, updatedAt]
+      properties:
+        caseId: { type: string, example: fraudcase_82001 }
+        status:
+          type: string
+          enum: [OPEN, INVESTIGATING, CONFIRMED_FRAUD, FALSE_POSITIVE, CLOSED]
+          example: INVESTIGATING
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T11:30:00Z'
+        notes: { type: string, example: 'Revisión manual iniciada.' }

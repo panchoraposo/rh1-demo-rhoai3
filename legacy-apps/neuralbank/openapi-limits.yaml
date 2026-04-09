@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Limits Service API
+  version: 1.0.0
+  description: API para límites por canal/operación.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/limits/customers/{customerId}:
+    get:
+      operationId: getCustomerLimits
+      summary: Obtiene límites para un cliente
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Limits' }
+    put:
+      operationId: updateCustomerLimits
+      summary: Actualiza límites para un cliente
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Limits' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Limits' }
+components:
+  schemas:
+    Limits:
+      type: object
+      required: [currency, transfersDaily, cashWithdrawalDaily]
+      properties:
+        currency: { type: string, example: USD }
+        transfersDaily: { type: number, format: double, example: 2500.00 }
+        cashWithdrawalDaily: { type: number, format: double, example: 300.00 }
+        cardPresentDaily: { type: number, format: double, example: 800.00 }

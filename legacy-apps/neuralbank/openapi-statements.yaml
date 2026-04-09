@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Statements Service API
+  version: 1.0.0
+  description: API para generar y consultar extractos.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/accounts/{accountId}/statements:
+    get:
+      operationId: listStatements
+      summary: Lista extractos disponibles
+      parameters:
+        - in: path
+          name: accountId
+          required: true
+          schema: { type: string, example: acc_20001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Statement' }
+  /v1/statements/{statementId}/download:
+    get:
+      operationId: downloadStatement
+      summary: Devuelve un link de descarga
+      parameters:
+        - in: path
+          name: statementId
+          required: true
+          schema: { type: string, example: stmt_30001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, example: 'https://files.neuralbank.example/statements/stmt_30001.pdf' }
+components:
+  schemas:
+    Statement:
+      type: object
+      required: [id, accountId, periodStart, periodEnd, createdAt]
+      properties:
+        id: { type: string, example: stmt_30001 }
+        accountId: { type: string, example: acc_20001 }
+        periodStart: { type: string, format: date, example: '2026-03-01' }
+        periodEnd: { type: string, format: date, example: '2026-03-31' }
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-01T00:00:00Z'

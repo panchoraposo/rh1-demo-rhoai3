@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package neuralbank.authz.v1;
+
+option java_multiple_files = true;
+option java_package = "com.neuralbank.authz.v1";
+option go_package = "github.com/neuralbank/security/authz/v1;authzv1";
+
+service AuthorizationService {
+  rpc Check(CheckRequest) returns (CheckResponse) {}
+  rpc ListEntitlements(ListEntitlementsRequest) returns (ListEntitlementsResponse) {}
+}
+
+message Subject {
+  string subject_type = 1; // "USER" | "SERVICE"
+  string subject_id = 2;   // e.g. "user_123"
+}
+
+message Resource {
+  string resource_type = 1; // e.g. "ACCOUNT"
+  string resource_id = 2;   // e.g. "acc_20001"
+}
+
+message CheckRequest {
+  Subject subject = 1;
+  string action = 2; // e.g. "accounts.read"
+  Resource resource = 3;
+  string correlation_id = 4;
+}
+
+message CheckResponse {
+  bool allowed = 1;
+  string decision = 2; // "ALLOW" | "DENY"
+  string reason = 3;
+}
+
+message Entitlement {
+  string action = 1;
+  string scope = 2; // e.g. "ACCOUNT:*"
+}
+
+message ListEntitlementsRequest {
+  Subject subject = 1;
+}
+
+message ListEntitlementsResponse {
+  repeated Entitlement items = 1;
+}

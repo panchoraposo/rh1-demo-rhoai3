@@ -1,0 +1,75 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Exchange Rates Service API
+  version: 1.0.0
+  description: API para cotizaciones FX y conversión.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/fx/rates:
+    get:
+      operationId: listRates
+      summary: Lista cotizaciones para un par o base
+      parameters:
+        - in: query
+          name: base
+          schema: { type: string, example: USD }
+        - in: query
+          name: quote
+          schema: { type: string, example: EUR }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  asOf:
+                    type: string
+                    format: date-time
+                    example: '2026-04-09T12:00:00Z'
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Rate' }
+  /v1/fx/convert:
+    post:
+      operationId: convertAmount
+      summary: Convierte un monto usando una cotización
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConvertRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvertResponse' }
+components:
+  schemas:
+    Rate:
+      type: object
+      required: [base, quote, mid]
+      properties:
+        base: { type: string, example: USD }
+        quote: { type: string, example: EUR }
+        mid: { type: number, format: double, example: 0.92 }
+        spreadBps: { type: integer, example: 35 }
+    ConvertRequest:
+      type: object
+      required: [amount, from, to]
+      properties:
+        amount: { type: number, format: double, example: 100.00 }
+        from: { type: string, example: USD }
+        to: { type: string, example: EUR }
+    ConvertResponse:
+      type: object
+      required: [amount, from, to, rate, convertedAmount]
+      properties:
+        amount: { type: number, format: double, example: 100.00 }
+        from: { type: string, example: USD }
+        to: { type: string, example: EUR }
+        rate: { type: number, format: double, example: 0.92 }
+        convertedAmount: { type: number, format: double, example: 92.00 }

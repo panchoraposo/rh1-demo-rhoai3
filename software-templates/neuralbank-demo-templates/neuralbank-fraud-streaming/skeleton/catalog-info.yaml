@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.component_id }}
+  description: ${{ values.description }}
+  tags: [neuralbank, kafka, streaming, fraud]
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/${{ values.owner }}
+  system: neuralbank-risk-and-compliance
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.component_id }}
+  description: ${{ values.description }}
+  tags: [kafka, streaming, neuralbank]
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: neuralbank

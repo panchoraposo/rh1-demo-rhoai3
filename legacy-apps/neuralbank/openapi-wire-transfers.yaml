@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Wire Transfers Service API
+  version: 1.0.0
+  description: API para transferencias wire y tracking.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/wires:
+    post:
+      operationId: createWire
+      summary: Crea una transferencia wire
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateWireRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WireTransfer' }
+    get:
+      operationId: listWires
+      summary: Lista wires por cuenta origen
+      parameters:
+        - in: query
+          name: fromAccountId
+          required: true
+          schema: { type: string, example: acc_20001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/WireTransfer' }
+  /v1/wires/{wireId}:
+    get:
+      operationId: getWire
+      summary: Obtiene el estado de una wire
+      parameters:
+        - in: path
+          name: wireId
+          required: true
+          schema: { type: string, example: wire_40001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WireTransfer' }
+components:
+  schemas:
+    CreateWireRequest:
+      type: object
+      required: [fromAccountId, beneficiaryId, amount, currency, purpose]
+      properties:
+        fromAccountId: { type: string, example: acc_20001 }
+        beneficiaryId: { type: string, example: ben_20001 }
+        amount: { type: number, format: double, example: 800.00 }
+        currency: { type: string, example: USD }
+        purpose: { type: string, example: RENT }
+        idempotencyKey: { type: string, example: '2d0af740-7b79-4f39-a26b-4297d2f7f0dc' }
+    WireTransfer:
+      type: object
+      required: [id, status, createdAt, amount, currency, fromAccountId]
+      properties:
+        id: { type: string, example: wire_40001 }
+        fromAccountId: { type: string, example: acc_20001 }
+        status:
+          type: string
+          enum: [CREATED, IN_REVIEW, SENT, SETTLED, REJECTED, CANCELLED]
+          example: IN_REVIEW
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T12:15:00Z'
+        amount: { type: number, format: double, example: 800.00 }
+        currency: { type: string, example: USD }

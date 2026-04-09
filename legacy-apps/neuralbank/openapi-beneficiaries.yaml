@@ -1,0 +1,80 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Beneficiaries Service API
+  version: 1.0.0
+  description: API para administrar beneficiarios y agenda de transferencias.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/beneficiaries:
+    get:
+      operationId: listBeneficiaries
+      summary: Lista beneficiarios por customerId
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Beneficiary' }
+    post:
+      operationId: createBeneficiary
+      summary: Crea un beneficiario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBeneficiaryRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Beneficiary' }
+  /v1/beneficiaries/{beneficiaryId}:
+    delete:
+      operationId: deleteBeneficiary
+      summary: Elimina un beneficiario
+      parameters:
+        - in: path
+          name: beneficiaryId
+          required: true
+          schema: { type: string, example: ben_20001 }
+      responses:
+        '204':
+          description: Deleted
+components:
+  schemas:
+    CreateBeneficiaryRequest:
+      type: object
+      required: [customerId, alias, destinationType, destinationId]
+      properties:
+        customerId: { type: string, example: cust_10001 }
+        alias: { type: string, example: Alquiler }
+        destinationType:
+          type: string
+          enum: [ACCOUNT, IBAN, CARD]
+          example: IBAN
+        destinationId: { type: string, example: 'ES9121000418450200051332' }
+    Beneficiary:
+      type: object
+      required: [id, customerId, alias, destinationType, destinationId, createdAt]
+      properties:
+        id: { type: string, example: ben_20001 }
+        customerId: { type: string, example: cust_10001 }
+        alias: { type: string, example: Alquiler }
+        destinationType: { type: string, example: IBAN }
+        destinationId: { type: string, example: 'ES9121000418450200051332' }
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-09T12:12:00Z'

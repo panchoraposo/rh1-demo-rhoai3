@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package neuralbank.ledger.v1;
+
+option java_multiple_files = true;
+option java_package = "com.neuralbank.ledger.v1";
+option go_package = "github.com/neuralbank/ledger/ledger/v1;ledgerv1";
+
+service LedgerService {
+  rpc CreatePosting(CreatePostingRequest) returns (Posting) {}
+  rpc GetPosting(GetPostingRequest) returns (Posting) {}
+  rpc ListPostings(ListPostingsRequest) returns (ListPostingsResponse) {}
+}
+
+message Money {
+  string currency = 1; // e.g. "USD"
+  double amount = 2;
+}
+
+message Posting {
+  string posting_id = 1;     // e.g. "pst_10001"
+  string account_id = 2;     // e.g. "acc_20001"
+  string ledger_account = 3; // e.g. "1010:CASH"
+  Money amount = 4;
+  string direction = 5;      // "DEBIT" | "CREDIT"
+  string created_at = 6;     // RFC3339 timestamp string
+  string reference = 7;      // idempotency/reference
+}
+
+message CreatePostingRequest {
+  string account_id = 1;
+  string ledger_account = 2;
+  Money amount = 3;
+  string direction = 4;
+  string reference = 5;
+}
+
+message GetPostingRequest {
+  string posting_id = 1;
+}
+
+message ListPostingsRequest {
+  string account_id = 1;
+  int32 limit = 2;
+  string page_token = 3;
+}
+
+message ListPostingsResponse {
+  repeated Posting items = 1;
+  string next_page_token = 2;
+}

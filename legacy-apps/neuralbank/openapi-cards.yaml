@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Cards Service API
+  version: 1.0.0
+  description: API para tarjetas y controles (bloqueo, límites).
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/cards:
+    get:
+      operationId: listCards
+      summary: Lista tarjetas por customerId
+      parameters:
+        - in: query
+          name: customerId
+          required: true
+          schema: { type: string, example: cust_10001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Card' }
+  /v1/cards/{cardId}/lock:
+    post:
+      operationId: lockCard
+      summary: Bloquea una tarjeta
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string, example: card_70001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+  /v1/cards/{cardId}/unlock:
+    post:
+      operationId: unlockCard
+      summary: Desbloquea una tarjeta
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string, example: card_70001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+  /v1/cards/{cardId}/limits:
+    put:
+      operationId: updateCardLimits
+      summary: Actualiza límites diarios/mensuales
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string, example: card_70001 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CardLimits' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+components:
+  schemas:
+    Card:
+      type: object
+      required: [id, customerId, brand, status, last4, limits]
+      properties:
+        id: { type: string, example: card_70001 }
+        customerId: { type: string, example: cust_10001 }
+        brand:
+          type: string
+          enum: [VISA, MASTERCARD]
+          example: VISA
+        status:
+          type: string
+          enum: [ACTIVE, LOCKED, EXPIRED]
+          example: ACTIVE
+        last4: { type: string, example: '4242' }
+        limits: { $ref: '#/components/schemas/CardLimits' }
+    CardLimits:
+      type: object
+      required: [daily, monthly, currency]
+      properties:
+        daily: { type: number, format: double, example: 500.00 }
+        monthly: { type: number, format: double, example: 3000.00 }
+        currency: { type: string, example: USD }

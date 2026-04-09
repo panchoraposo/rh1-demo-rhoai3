@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank Transactions Service API
+  version: 1.0.0
+  description: API para consultar transacciones y movimientos.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/accounts/{accountId}/transactions:
+    get:
+      operationId: listTransactions
+      summary: Lista transacciones de una cuenta
+      parameters:
+        - in: path
+          name: accountId
+          required: true
+          schema: { type: string, example: acc_20001 }
+        - in: query
+          name: from
+          schema: { type: string, format: date, example: '2026-04-01' }
+        - in: query
+          name: to
+          schema: { type: string, format: date, example: '2026-04-09' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Transaction' }
+  /v1/transactions/{transactionId}:
+    get:
+      operationId: getTransaction
+      summary: Obtiene una transacción por ID
+      parameters:
+        - in: path
+          name: transactionId
+          required: true
+          schema: { type: string, example: txn_90001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+components:
+  schemas:
+    Transaction:
+      type: object
+      required: [id, accountId, postedAt, amount, currency, direction, status, description]
+      properties:
+        id: { type: string, example: txn_90001 }
+        accountId: { type: string, example: acc_20001 }
+        postedAt:
+          type: string
+          format: date-time
+          example: '2026-04-08T17:25:00Z'
+        amount: { type: number, format: double, example: 42.15 }
+        currency: { type: string, example: USD }
+        direction:
+          type: string
+          enum: [DEBIT, CREDIT]
+          example: DEBIT
+        status:
+          type: string
+          enum: [PENDING, POSTED, REVERSED]
+          example: POSTED
+        merchantName: { type: string, example: NeuralCoffee }
+        mcc: { type: string, example: '5814' }
+        description: { type: string, example: POS purchase }

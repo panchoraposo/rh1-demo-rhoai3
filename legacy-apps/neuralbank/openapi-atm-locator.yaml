@@ -1,0 +1,108 @@
+openapi: 3.0.3
+info:
+  title: Neuralbank ATM Locator Service API
+  version: 1.0.0
+  description: API para búsqueda de cajeros (ATM) y sucursales.
+servers:
+  - url: https://api.neuralbank.example
+paths:
+  /v1/locations/atms:
+    get:
+      operationId: searchAtms
+      summary: Busca ATMs por cercanía o texto
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string, example: Palermo }
+        - in: query
+          name: lat
+          schema: { type: number, format: double, example: -34.5875 }
+        - in: query
+          name: lon
+          schema: { type: number, format: double, example: -58.4300 }
+        - in: query
+          name: radiusMeters
+          schema: { type: integer, default: 2000, example: 1500 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 25 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Atm' }
+  /v1/locations/branches:
+    get:
+      operationId: searchBranches
+      summary: Busca sucursales por cercanía o texto
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string, example: Centro }
+        - in: query
+          name: lat
+          schema: { type: number, format: double, example: -34.6037 }
+        - in: query
+          name: lon
+          schema: { type: number, format: double, example: -58.3816 }
+        - in: query
+          name: radiusMeters
+          schema: { type: integer, default: 5000, example: 3000 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Branch' }
+components:
+  schemas:
+    GeoPoint:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat: { type: number, format: double, example: -34.6037 }
+        lon: { type: number, format: double, example: -58.3816 }
+    Address:
+      type: object
+      properties:
+        line1: { type: string, example: Av. Siempre Viva 742 }
+        city: { type: string, example: Buenos Aires }
+        region: { type: string, example: CABA }
+        postalCode: { type: string, example: '1000' }
+        country: { type: string, example: AR }
+    Atm:
+      type: object
+      required: [id, name, location]
+      properties:
+        id: { type: string, example: atm_10001 }
+        name: { type: string, example: Neuralbank ATM - Plaza }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        address: { $ref: '#/components/schemas/Address' }
+        features:
+          type: array
+          items:
+            type: string
+            enum: [DEPOSIT, WITHDRAWAL, NFC, ACCESSIBLE]
+          example: [WITHDRAWAL, NFC]
+        hours: { type: string, example: 24x7 }
+    Branch:
+      type: object
+      required: [id, name, location]
+      properties:
+        id: { type: string, example: br_20001 }
+        name: { type: string, example: Neuralbank Branch - Centro }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        address: { $ref: '#/components/schemas/Address' }
+        phone: { type: string, example: '+54-11-5555-1234' }
+        hours: { type: string, example: 'Mon-Fri 10:00-15:00' }
