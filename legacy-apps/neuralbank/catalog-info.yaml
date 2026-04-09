@@ -34,6 +34,17 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: System
 metadata:
+  name: neuralbank-customers
+  title: Customers
+  description: Gestión de perfiles de clientes, segmentación y preferencias.
+  tags: [neuralbank, customers]
+spec:
+  owner: group:default/platform-engineers
+  domain: neuralbank
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
   name: neuralbank-payments
   title: Payments
   description: Pagos, transferencias y beneficiarios.

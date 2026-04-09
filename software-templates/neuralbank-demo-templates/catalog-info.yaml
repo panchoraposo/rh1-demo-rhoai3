@@ -1,9 +1,9 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: neuralbank-ai-assistant-api
-  title: Neuralbank AI Assistant API
-  description: AI Assistant API (Python/FastAPI) para Neuralbank.
+  name: fastapi-ai-assistant-api
+  title: FastAPI AI Assistant API
+  description: AI assistant API built with Python and FastAPI.
   tags: [recommended, neuralbank, ai, python]
 spec:
   owner: developers
@@ -39,9 +39,9 @@ spec:
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: neuralbank-fraud-streaming
-  title: Neuralbank Fraud Streaming
-  description: Servicio event-driven para detección de fraude (Kafka).
+  name: kafka-streaming-service
+  title: Kafka Streaming Service
+  description: Event-driven streaming service using Kafka.
   tags: [recommended, neuralbank, kafka, streaming]
 spec:
   owner: developers
@@ -77,9 +77,9 @@ spec:
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: neuralbank-grpc-service
-  title: Neuralbank gRPC Service
-  description: Microservicio gRPC (proto-first) para Neuralbank.
+  name: grpc-microservice
+  title: gRPC Microservice
+  description: Proto-first gRPC microservice scaffold.
   tags: [recommended, neuralbank, grpc]
 spec:
   owner: developers
@@ -115,9 +115,9 @@ spec:
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: neuralbank-frontend-portal
-  title: Neuralbank Frontend Portal
-  description: Frontend portal (React) para Neuralbank.
+  name: react-frontend-portal
+  title: React Frontend Portal
+  description: Customer-facing frontend portal built with React.
   tags: [recommended, neuralbank, react, frontend]
 spec:
   owner: developers
