@@ -17,4 +17,7 @@
     - role: gitops-observability
     - role: gitops-logging
     - role: gitops-deploy-neuralbank
+    - role: gitops-deploy-kiali
+    - role: gitops-deploy-kubernetes-mcp
+    - role: gitops-deploy-openshift-lightspeed
     - role: dashboard

@@ -15,7 +15,7 @@ spec:
       - name: red_hat_openshift_ai
         type: rhoai_vllm
         # Debe terminar en `/v1`. Usamos el Service interno (portable entre clusters).
-        url: http://llama-32-3b-instruct-openai.my-first-model.svc.cluster.local/v1
+        url: http://llama-32-3b-instruct-openai.my-first-model.svc.cluster.local:8080/v1
         credentialsSecretRef:
           name: ols-llm-credentials
         models:

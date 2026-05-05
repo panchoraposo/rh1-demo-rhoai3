@@ -151,19 +151,11 @@
   retries: 20
   delay: 10
 
-- name: "Obtener logs del pod de Vault para extraer el token raíz"
-  ansible.builtin.command: "oc logs vault-0 -n {{ vault_namespace }}"
-  register: vault_logs
-  changed_when: false
-
-- name: "Extraer el token raíz de los logs de Vault"
+- name: "Definir el token raíz (Vault en modo dev)"
   ansible.builtin.set_fact:
-    vault_root_token: "{{ (vault_logs.stdout | regex_search('Root Token: (.+)', '\\1') | default([])) | first | default('') }}"
-
-- name: "Validar que se encontró el token raíz"
-  ansible.builtin.fail:
-    msg: "No se pudo encontrar el token raíz en los logs del pod de Vault."
-  when: vault_root_token == ""
+    # En este demo, Vault se despliega con `server.dev.enabled: true` (in-memory).
+    # En ese modo el root token es determinístico ("root") y evita depender de logs/CLI context.
+    vault_root_token: "root"
 
 - name: "Crear un Secret para el ServiceAccount de Vault"
   kubernetes.core.k8s:

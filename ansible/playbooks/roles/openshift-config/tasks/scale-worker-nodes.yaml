@@ -48,7 +48,13 @@
   register: machineset_status
   until:
     - machineset_status.resources | length > 0
-    - machineset_status.resources[0].status.readyReplicas is defined
-    - machineset_status.resources[0].status.readyReplicas == desired_replicas | int
+    # Some environments do not report readyReplicas (or delay it significantly).
+    # Use fullyLabeledReplicas as a practical fallback to avoid blocking installs.
+    - >
+      (machineset_status.resources[0].status.readyReplicas is defined and
+       machineset_status.resources[0].status.readyReplicas == desired_replicas | int)
+      or
+      (machineset_status.resources[0].status.fullyLabeledReplicas is defined and
+       machineset_status.resources[0].status.fullyLabeledReplicas == desired_replicas | int)
   retries: 60
   delay: 10

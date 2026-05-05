@@ -1,0 +1,41 @@
+---
+- name: Crear aplicación ArgoCD para Kubernetes MCP Server
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: kubernetes-mcp-server
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/kubernetes-mcp/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: istio-system
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+
+- name: Esperar que el Deployment kubernetes-mcp-server esté Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: kubernetes-mcp-server
+    namespace: istio-system
+  register: kubernetes_mcp_deploy
+  until: >
+    kubernetes_mcp_deploy.resources is defined and
+    kubernetes_mcp_deploy.resources | length > 0 and
+    (kubernetes_mcp_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
+  retries: 60
+  delay: 10
+  changed_when: false
+

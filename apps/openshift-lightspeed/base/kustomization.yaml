@@ -3,5 +3,6 @@ resources:
   - operator-group.yaml
   - subscription.yaml
   - llm-credentials-secret.yaml
+  - llm-openai-service.yaml
   - olsconfig.yaml
 

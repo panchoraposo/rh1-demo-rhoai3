@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-32-3b-instruct-openai
+  namespace: my-first-model
+spec:
+  publishNotReadyAddresses: true
+  selector:
+    app: isvc.llama-32-3b-instruct-predictor
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+

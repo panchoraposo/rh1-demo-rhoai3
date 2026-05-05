@@ -1,0 +1,54 @@
+---
+- name: Crear aplicación ArgoCD para Kiali
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: kiali
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/kiali/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: istio-system
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+            - SkipDryRunOnMissingResource=true
+
+- name: Esperar que el operador Kiali esté Available (openshift-operators)
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: kiali-operator
+    namespace: openshift-operators
+  register: kiali_operator_deploy
+  until: >
+    kiali_operator_deploy.resources is defined and
+    kiali_operator_deploy.resources | length > 0 and
+    (kiali_operator_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
+  retries: 90
+  delay: 10
+  changed_when: false
+
+- name: Esperar que el CR Kiali exista (istio-system)
+  kubernetes.core.k8s_info:
+    api_version: kiali.io/v1alpha1
+    kind: Kiali
+    name: kiali-user-workload-monitoring
+    namespace: istio-system
+  register: kiali_cr
+  until: kiali_cr.resources is defined and kiali_cr.resources | length > 0
+  retries: 60
+  delay: 10
+  changed_when: false
+

@@ -1,13 +1,16 @@
-- name: Obtener contraseña desde Secret de OpenShift
-  command: >
-    oc -n keycloak get secret keycloak-initial-admin -o jsonpath="{.data.password}"
-  register: kc_admin_pass_raw
+- name: Obtener credenciales desde Secret de OpenShift
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: keycloak-initial-admin
+    namespace: keycloak
+  register: kc_admin_secret
   changed_when: false
 
 - name: Setear usuario y contraseña de admin Keycloak
   set_fact:
-    keycloak_admin_user: temp-admin
-    keycloak_admin_password: "{{ kc_admin_pass_raw.stdout | b64decode }}"
+    keycloak_admin_user: "{{ kc_admin_secret.resources[0].data.username | b64decode }}"
+    keycloak_admin_password: "{{ kc_admin_secret.resources[0].data.password | b64decode }}"
 
 - name: Esperar que Keycloak esté disponible en la ruta
   uri:

@@ -1,0 +1,13 @@
+apiVersion: kiali.io/v1alpha1
+kind: OSSMConsole
+metadata:
+  name: ossmconsole
+  namespace: openshift-console
+spec:
+  kiali:
+    serviceName: kiali
+    serviceNamespace: istio-system
+    servicePort: 20001
+  deployment:
+    namespace: openshift-console
+

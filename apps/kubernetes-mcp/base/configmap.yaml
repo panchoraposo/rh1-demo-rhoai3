@@ -9,6 +9,6 @@ data:
     read_only = true
 
     [toolset_configs.kiali]
-    url = "http://kiali.istio-system.svc.cluster.local:20001"
+    url = "https://kiali.istio-system.svc.cluster.local:20001"
     insecure = true
 

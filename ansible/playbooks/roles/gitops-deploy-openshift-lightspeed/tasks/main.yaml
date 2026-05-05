@@ -1,0 +1,59 @@
+---
+- name: Crear aplicación ArgoCD para OpenShift Lightspeed
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: openshift-lightspeed
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/openshift-lightspeed/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: openshift-lightspeed
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+            - SkipDryRunOnMissingResource=true
+
+- name: Esperar que existan Deployments en openshift-lightspeed
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: openshift-lightspeed
+  register: ols_deployments
+  until: >
+    ols_deployments.resources is defined and
+    (ols_deployments.resources | length) > 0 and
+    (
+      ols_deployments.resources
+      | map(attribute='status.availableReplicas')
+      | map('default', 0)
+      | map('int')
+      | sum
+    ) >= 1
+  retries: 120
+  delay: 10
+  changed_when: false
+
+- name: Esperar que el CR OLSConfig exista
+  kubernetes.core.k8s_info:
+    api_version: ols.openshift.io/v1alpha1
+    kind: OLSConfig
+    name: cluster
+    namespace: openshift-lightspeed
+  register: ols_config
+  until: ols_config.resources is defined and ols_config.resources | length > 0
+  retries: 60
+  delay: 10
+  changed_when: false
+

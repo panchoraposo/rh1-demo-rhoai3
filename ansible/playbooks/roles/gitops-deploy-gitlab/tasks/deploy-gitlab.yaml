@@ -59,13 +59,18 @@
   register: gitlab_result
   until: gitlab_result is not failed
 
-- name: Esperar que los pods de GitLab estén en estado Ready
-  shell: |
-    oc wait --for=condition=Ready pod -l app=gitlab -n gitlab --timeout=300s
-  register: wait_gitlab_pods
-  retries: 10
-  delay: 15
-  until: wait_gitlab_pods.rc == 0
+- name: Esperar a que el Deployment de GitLab esté Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: gitlab
+    namespace: gitlab
+  register: gitlab_deploy_status
+  until: >
+    gitlab_deploy_status.resources | length > 0 and
+    (gitlab_deploy_status.resources[0].status.availableReplicas | default(0) | int) > 0
+  retries: 90
+  delay: 10
 
 - name: Verificar que el endpoint de GitLab esté disponible
   uri:

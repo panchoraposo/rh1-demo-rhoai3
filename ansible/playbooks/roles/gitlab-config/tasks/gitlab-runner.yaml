@@ -78,7 +78,16 @@
 - name: Instalar/actualizar GitLab Runner (Kubernetes executor) para TechDocs
   ansible.builtin.shell: |
     set -euo pipefail
+    KUBECONFIG_ARG=""
+    CTX_ARG=""
+    if [[ -n "${KUBECONFIG:-}" ]]; then
+      KUBECONFIG_ARG="--kubeconfig ${KUBECONFIG}"
+    fi
+    if [[ -n "${K8S_AUTH_CONTEXT:-}" ]]; then
+      CTX_ARG="--kube-context ${K8S_AUTH_CONTEXT}"
+    fi
     helm upgrade --install {{ gitlab_runner_release_name | default('gitlab-runner') }} gitlab/gitlab-runner \
+      ${KUBECONFIG_ARG} ${CTX_ARG} \
       --namespace {{ gitlab_namespace | default('gitlab') }} \
       --set gitlabUrl="https://{{ gitlab_host }}/" \
       --set rbac.create=true \
@@ -93,7 +102,14 @@
 - name: Permitir anyuid SCC al ServiceAccount del runner (OpenShift)
   ansible.builtin.shell: |
     set -euo pipefail
-    oc -n {{ gitlab_namespace | default('gitlab') }} adm policy add-scc-to-user anyuid -z {{ gitlab_runner_sa_name | default('gitlab-runner') }} >/dev/null 2>&1 || true
+    CTX_ARGS=()
+    if [[ -n "${KUBECONFIG:-}" ]]; then
+      CTX_ARGS+=(--kubeconfig "${KUBECONFIG}")
+    fi
+    if [[ -n "${K8S_AUTH_CONTEXT:-}" ]]; then
+      CTX_ARGS+=(--context "${K8S_AUTH_CONTEXT}")
+    fi
+    oc "${CTX_ARGS[@]}" -n {{ gitlab_namespace | default('gitlab') }} adm policy add-scc-to-user anyuid -z {{ gitlab_runner_sa_name | default('gitlab-runner') }} >/dev/null 2>&1 || true
   args:
     executable: /bin/bash
 

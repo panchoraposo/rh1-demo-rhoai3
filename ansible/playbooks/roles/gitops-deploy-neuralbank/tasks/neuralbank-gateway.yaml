@@ -102,7 +102,9 @@
           targetRevision: "{{ developer_hub_target_revision }}"
           path: apps/service-mesh/overlays/dev 
         destination: { server: https://kubernetes.default.svc }
-        syncPolicy: { syncOptions: [ "CreateNamespace=true" ] }
+        syncPolicy:
+          automated: { prune: true, selfHeal: true }
+          syncOptions: [ "CreateNamespace=true" ]
 
 - name: "Esperar a que ArgoCD cree el recurso Istio (CR)"
   kubernetes.core.k8s_info:
@@ -270,8 +272,18 @@
     namespace: istio-system
 
 - name: "Forzar Sync de ArgoCD (Regenerar ServiceAccount y Configs)"
-  ansible.builtin.shell: |
-    oc patch applications.argoproj.io neuralbank-gateway -n openshift-gitops --type merge -p '{"operation":{"sync":{"prune":true},"initiator":{"automated":false}}}'
+  kubernetes.core.k8s:
+    state: patched
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: neuralbank-gateway
+    namespace: openshift-gitops
+    definition:
+      operation:
+        initiatedBy:
+          automated: false
+        sync:
+          prune: true
   register: argo_sync_trigger
   changed_when: true
 
