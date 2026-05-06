@@ -16,7 +16,7 @@ spec:
           cookie:
             name: jwt
         jwt:
-          issuerUrl: https://sso.apps.ocp.l6vf4.sandbox744.opentlc.com/realms/neuralbank
+          issuerUrl: https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank
     response:
       unauthenticated:
         code: 401
