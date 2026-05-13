@@ -29,13 +29,13 @@ frontend:
 
 # --- Keycloak Configuration ---
 keycloak:
-  issuerUrl: 'https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank'
+  issuerUrl: 'https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/neuralbank'
   clientId: 'neuralbank-frontend'
-  clientSecret: 'neuralbank-frontend-secret'
-  authorizationEndpoint: 'https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank/protocol/openid-connect/auth'
-  redirectUri: 'https://neuralbank.apps.ocp.fc6tz.sandbox478.opentlc.com/auth/callback'
-  tokenEndpoint: 'https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank/protocol/openid-connect/token'
-  postLogoutRedirectUri: 'https://neuralbank.apps.ocp.fc6tz.sandbox478.opentlc.com'
+  clientSecret: ''
+  authorizationEndpoint: 'https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/neuralbank/protocol/openid-connect/auth'
+  redirectUri: 'https://neuralbank.apps.ocp.mm727.sandbox944.opentlc.com/auth/callback'
+  tokenEndpoint: 'https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/neuralbank/protocol/openid-connect/token'
+  postLogoutRedirectUri: 'https://neuralbank.apps.ocp.mm727.sandbox944.opentlc.com'
 
 # --- API Configuration ---
 api:
