@@ -91,7 +91,7 @@ spec:
                   title: Image Host
                   type: string
                   description: Host for storing image
-                  default: quay.apps.ocp.l6vf4.sandbox744.opentlc.com
+                  default: quay.apps.ocp.mm727.sandbox944.opentlc.com
                 image_organization:
                   title: Quay Organization
                   type: string
@@ -116,9 +116,9 @@ spec:
               title: Repo Host
               type: string
               description: Your SCM host
-              default: "gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com"
+              default: "gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com"
               enum:
-                - "gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com"
+                - "gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com"
         gitlab_group:
           title: GitLab Group
           type: string
@@ -148,7 +148,7 @@ spec:
           image_organization: 'quayadmin'
           port: 8080
           gitops_namespace: openshift-gitops
-          cluster_subdomain: apps.ocp.l6vf4.sandbox744.opentlc.com
+          cluster_subdomain: apps.ocp.mm727.sandbox944.opentlc.com
 
         targetPath: ./${{ parameters.gitlab_group }}-${{ parameters.component_id }}
 
@@ -196,7 +196,7 @@ spec:
           gitops_namespace: openshift-gitops
           gitops_project: default
           owner: developers
-          cluster_subdomain: apps.ocp.l6vf4.sandbox744.opentlc.com
+          cluster_subdomain: apps.ocp.mm727.sandbox944.opentlc.com
           port: 8080
 
         targetPath: ./${{ parameters.gitlab_group }}-${{ parameters.component_id }}-gitops

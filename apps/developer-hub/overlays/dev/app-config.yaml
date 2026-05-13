@@ -2,7 +2,7 @@ app:
   title: Red Hat Developer Hub on OpenShift
 
 backend:
-  baseUrl: https://backstage-developer-hub-backstage.apps.ocp.fc6tz.sandbox478.opentlc.com
+  baseUrl: https://backstage-developer-hub-backstage.apps.ocp.mm727.sandbox944.opentlc.com
   listen:
     port: 7007
     host: 0.0.0.0
@@ -33,7 +33,7 @@ auth:
     oidc:
       production:
         prompt: auto
-        metadataUrl: https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/backstage/.well-known/openid-configuration
+        metadataUrl: https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/backstage/.well-known/openid-configuration
         clientId: backstage
         clientSecret: ${OAUTH_CLIENT_SECRET}
         signIn:
@@ -42,12 +42,12 @@ auth:
 signInPage: oidc
 
 quay:
-  uiUrl: https://quay.apps.ocp.fc6tz.sandbox478.opentlc.com
+  uiUrl: https://quay.apps.ocp.mm727.sandbox944.opentlc.com
 
 proxy:
   endpoints:
     '/quay/api':
-      target: 'https://quay.apps.ocp.fc6tz.sandbox478.opentlc.com'
+      target: 'https://quay.apps.ocp.mm727.sandbox944.opentlc.com'
       headers:
         X-Requested-With: 'XMLHttpRequest'
         Authorization: 'Bearer ${QUAY_TOKEN}'
@@ -153,25 +153,25 @@ catalog:
   locations:
     # Quarkus MCP Template
     - type: url
-      target: https://gitlab-gitlab.apps.ocp.fc6tz.sandbox478.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/quarkus-mcp-template/template.yaml
+      target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/quarkus-mcp-template/template.yaml
     # Docs: MCP con Cursor (TechDocs)
     - type: url
-      target: https://gitlab-gitlab.apps.ocp.fc6tz.sandbox478.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
+      target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
     # Customer Service API
     - type: url
-      target: https://gitlab-gitlab.apps.ocp.fc6tz.sandbox478.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/customer-service/api/catalog-info.yaml
+      target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/customer-service/api/catalog-info.yaml
     # Neuralbank: suite de APIs bancarias
     - type: url
-      target: https://gitlab-gitlab.apps.ocp.fc6tz.sandbox478.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/neuralbank/catalog-info.yaml
+      target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/legacy-apps/neuralbank/catalog-info.yaml
     # Templates: Neuralbank
     - type: url
-      target: https://gitlab-gitlab.apps.ocp.fc6tz.sandbox478.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/neuralbank-demo-templates/catalog-info.yaml
+      target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/neuralbank-demo-templates/catalog-info.yaml
   
   providers:
     ## --- KEYCLOAK_CATALOG_PROVIDER ---
     keycloakOrg:
       default:
-        baseUrl: https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com
+        baseUrl: https://sso.apps.ocp.mm727.sandbox944.opentlc.com
         loginRealm: backstage
         realm: backstage
         clientId: backstage
@@ -185,7 +185,7 @@ catalog:
     ## --- GITLAB_CATALOG_PROVIDER ---
     gitlab:
       default:
-        host: gitlab-gitlab.apps.ocp.fc6tz.sandbox478.opentlc.com
+        host: gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com
         branch: rhdh-1.9-baseline
         fallbackBranch: master
         skipForkedRepos: true
@@ -221,14 +221,14 @@ techdocs:
 ## --- TECHDOCS_CONFIG ---
 
 techRadar:
-  url: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/tech-radar/radar.json
+  url: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/tech-radar/radar.json
 
 argocd:
   appLocatorMethods:
     - type: 'config'
       instances:
         - name: main
-          url: https://openshift-gitops-server-openshift-gitops.apps.ocp.l6vf4.sandbox744.opentlc.com
+          url: https://openshift-gitops-server-openshift-gitops.apps.ocp.mm727.sandbox944.opentlc.com
           username: admin
           password: ${ARGOCD_PASSWORD}
 kubernetes:
@@ -237,7 +237,7 @@ kubernetes:
   clusterLocatorMethods:
     - clusters:
         - name: demo-cluster
-          url: https://api.ocp.l6vf4.sandbox744.opentlc.com:6443
+          url: https://api.ocp.mm727.sandbox944.opentlc.com:6443
           authProvider: serviceAccount
           skipTLSVerify: true
           serviceAccountToken: ${KUBERNETES_SA_TOKEN}
@@ -309,9 +309,9 @@ scaffolder:
 
 integrations:
   gitlab:
-    - apiBaseUrl: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com/api/v4
-      baseUrl: https://gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com
-      host: gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com
+    - apiBaseUrl: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/api/v4
+      baseUrl: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com
+      host: gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com
       token: ${GITLAB_TOKEN}
   
 initContainers:
