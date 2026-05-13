@@ -4,15 +4,15 @@ metadata:
   name: neuralbank-oidc
 spec:
   provider:
-    issuerURL: "https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank"
+    issuerURL: "https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/neuralbank"
     clientID: "neuralbank-frontend" 
     clientSecretRef:
       name: neuralbank-oidc-secret
       key: client-secret
 
-    authorizationEndpoint: "https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank/protocol/openid-connect/auth"
-    redirectURI: "https://neuralbank.apps.ocp.fc6tz.sandbox478.opentlc.com/auth/callback"
-    tokenEndpoint: "https://sso.apps.ocp.fc6tz.sandbox478.opentlc.com/realms/neuralbank/protocol/openid-connect/token"
+    authorizationEndpoint: "https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/neuralbank/protocol/openid-connect/auth"
+    redirectURI: "https://neuralbank.apps.ocp.mm727.sandbox944.opentlc.com/auth/callback"
+    tokenEndpoint: "https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/neuralbank/protocol/openid-connect/token"
    
   targetRef:
     group: gateway.networking.k8s.io

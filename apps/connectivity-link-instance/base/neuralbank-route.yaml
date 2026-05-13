@@ -2,12 +2,14 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: neuralbank-api-route
-  namespace: neuralbank
 spec:
   parentRefs:
     - name: neuralbank-gateway
       namespace: istio-system
   
+  hostnames:
+    - "neuralbank.apps.ocp.mm727.sandbox944.opentlc.com"
+
   rules:
     - matches:
         - path:
@@ -24,12 +26,14 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: neuralbank-root-route
-  namespace: neuralbank
 spec:
   parentRefs:
     - name: neuralbank-gateway
       namespace: istio-system
   
+  hostnames:
+    - "neuralbank.apps.ocp.mm727.sandbox944.opentlc.com"
+
   rules:
     - matches:
         - path:
