@@ -227,3 +227,9 @@ quay_robot_token: "{{ quay_robot_token }}"
 
 # --- MCP ---
 mcp_token: "rhdh-static-token"
+
+# --- Jenkins ---
+jenkins_namespace: "jenkins"
+jenkins_route_name: "jenkins"
+jenkins_admin_username: "admin"
+jenkins_admin_token: "password"

@@ -62,8 +62,8 @@
   
   - name: "Aprobar InstallPlans pendientes"
     ansible.builtin.shell: |
-      for ip in $(oc get installplan -n kuadrant-system -o jsonpath='{.items[?(@.status.phase=="RequiresApproval")].metadata.name}'); do
-        oc patch installplan $ip -n kuadrant-system --type merge --patch '{"spec":{"approved":true}}'
+      for ip in $(oc --context {{ kube_context }} get installplan -n kuadrant-system -o jsonpath='{.items[?(@.status.phase=="RequiresApproval")].metadata.name}'); do
+        oc --context {{ kube_context }} patch installplan $ip -n kuadrant-system --type merge --patch '{"spec":{"approved":true}}'
         echo "Approved: $ip"
       done
     register: approve_cmd
@@ -86,7 +86,7 @@
   
   - name: "Reiniciar todos los pods de kuadrant-system"
     ansible.builtin.shell: |
-      oc delete pods --all -n kuadrant-system --ignore-not-found
+      oc --context {{ kube_context }} delete pods --all -n kuadrant-system --ignore-not-found
     ignore_errors: yes
   
   - name: "Esperar a que los Operadores estén Saludables (Available)"

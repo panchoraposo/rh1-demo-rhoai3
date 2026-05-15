@@ -26,7 +26,7 @@
     
 - name: Esperar que el operador Keycloak esté disponible
   shell: |
-    oc -n keycloak get deployment rhbk-operator
+    oc --context {{ kube_context }} -n keycloak get deployment rhbk-operator
   register: operator_ready
   retries: 20
   delay: 10

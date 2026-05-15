@@ -1,0 +1,80 @@
+---
+- name: "Jenkins: Crear Role para ArgoCD en namespace {{ jenkins_namespace }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: argocd-app-controller
+        namespace: "{{ jenkins_namespace }}"
+      rules:
+        - apiGroups: [""]
+          resources: ["serviceaccounts", "pods", "services", "secrets", "configmaps", "persistentvolumeclaims"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["apps"]
+          resources: ["deployments", "statefulsets", "replicasets"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["batch"]
+          resources: ["jobs", "cronjobs"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        - apiGroups: ["route.openshift.io"]
+          resources: ["routes"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- name: "Jenkins: Asegurar que RoleBinding antiguo no exista para permitir recreación"
+  kubernetes.core.k8s:
+    state: absent
+    api_version: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    name: argocd-app-controller-binding
+    namespace: "{{ jenkins_namespace }}"
+  register: delete_rb_result
+  until: delete_rb_result.method is not defined or delete_rb_result.method == 'delete'
+  retries: 5
+  delay: 2
+  ignore_errors: true
+
+- name: "Jenkins: Asociar Role al Application Controller de ArgoCD"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: argocd-app-controller-binding
+        namespace: "{{ jenkins_namespace }}"
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ argocd_controller_sa }}"
+          namespace: "{{ argocd_namespace }}"
+      roleRef:
+        kind: Role
+        name: argocd-app-controller
+        apiGroup: rbac.authorization.k8s.io
+
+- name: "Jenkins: Crear Application ArgoCD"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: jenkins
+        namespace: "{{ argocd_namespace }}"
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/jenkins/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: "{{ jenkins_namespace }}"
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+

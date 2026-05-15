@@ -23,7 +23,7 @@
 
 - name: Esperar que el pod de Keycloak esté en estado Ready
   shell: |
-    oc wait --for=condition=Ready pod -l app.kubernetes.io/instance=keycloak -n keycloak --timeout=180s
+    oc --context {{ kube_context }} wait --for=condition=Ready pod -l app.kubernetes.io/instance=keycloak -n keycloak --timeout=180s
   register: wait_for_pod
   retries: 6
   delay: 10
@@ -31,7 +31,7 @@
 
 - name: Esperar que el Secret "keycloak-initial-admin" exista
   shell: |
-    oc -n keycloak get secret keycloak-initial-admin
+    oc --context {{ kube_context }} -n keycloak get secret keycloak-initial-admin
   register: secret_check
   retries: 10
   delay: 10

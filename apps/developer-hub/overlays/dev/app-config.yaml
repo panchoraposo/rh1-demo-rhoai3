@@ -80,6 +80,16 @@ dynamicPlugins:
               anyOf:
                 - hasAnnotation: tekton.dev/cicd
                 - hasAnnotation: janus-idp.io/tekton
+    backstage-community.plugin-jenkins:
+      mountPoints:
+        - mountPoint: entity.page.ci/cards
+          importName: EntityJenkinsContent
+          config:
+            layout:
+              gridColumn: 1 / -1
+            if:
+              allOf:
+                - isJenkinsAvailable
     # Argo CD: plugin "Argo CD by Red Hat" (community).
     # Nota: este plugin exporta componentes distintos al Roadie (no usa EntityArgoCD*Card).
     backstage-community.plugin-redhat-argocd:
@@ -231,6 +241,15 @@ argocd:
           url: https://openshift-gitops-server-openshift-gitops.apps.ocp.mm727.sandbox944.opentlc.com
           username: admin
           password: ${ARGOCD_PASSWORD}
+jenkins:
+  instances:
+    - name: default
+      baseUrl: ${JENKINS_URL}
+      username: ${JENKINS_USERNAME}
+      apiKey: ${JENKINS_TOKEN}
+  baseUrl: ${JENKINS_URL}
+  username: ${JENKINS_USERNAME}
+  apiKey: ${JENKINS_TOKEN}
 kubernetes:
   serviceLocatorMethod:
     type: multiTenant
@@ -303,6 +322,8 @@ scaffolder:
     - catalog:register
     - catalog:write
     - argocd:create-resources
+    - jenkins:job:create
+    - jenkins:job:build
   templaters:
     cookiecutter:
       cookiecutterCommand: cookiecutter

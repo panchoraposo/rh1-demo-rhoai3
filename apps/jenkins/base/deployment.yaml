@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  labels:
+    app.kubernetes.io/name: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jenkins
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jenkins
+    spec:
+      serviceAccountName: jenkins
+      containers:
+        - name: jenkins
+          # Imagen provista por OpenShift Samples (source: openshift/jenkins:2)
+          image: image-registry.openshift-image-registry.svc:5000/openshift/jenkins:2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: web
+              containerPort: 8080
+            - name: agent
+              containerPort: 50000
+          env:
+            - name: OPENSHIFT_ENABLE_OAUTH
+              value: "false"
+            # Cuando OPENSHIFT_ENABLE_OAUTH=false, el usuario 'admin' se inicializa con password 'password'
+            - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
+              value: "true"
+            - name: DISABLE_ADMINISTRATIVE_MONITORS
+              value: "false"
+            - name: KUBERNETES_MASTER
+              value: "https://kubernetes.default:443"
+            - name: KUBERNETES_TRUST_CERTIFICATES
+              value: "true"
+            - name: JENKINS_SERVICE_NAME
+              value: "jenkins"
+            - name: JNLP_SERVICE_NAME
+              value: "jenkins-jnlp"
+            - name: ENABLE_FATAL_ERROR_LOG_FILE
+              value: "false"
+            - name: JENKINS_UC_INSECURE
+              value: "false"
+            - name: JAVA_FIPS_OPTIONS
+              value: "-Dcom.redhat.fips=false"
+          resources:
+            limits:
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: jenkins-data
+              mountPath: /var/lib/jenkins
+      volumes:
+        - name: jenkins-data
+          persistentVolumeClaim:
+            claimName: jenkins
+

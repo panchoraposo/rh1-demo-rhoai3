@@ -4,6 +4,23 @@
   vars_files:
     - ../vars/demo.yaml
 
+  vars:
+    kube_context: "{{ lookup('env','K8S_AUTH_CONTEXT') | default('previred', true) }}"
+
+  module_defaults:
+    kubernetes.core.k8s:
+      kubeconfig: "{{ lookup('env','KUBECONFIG') }}"
+      context: "{{ kube_context }}"
+    kubernetes.core.k8s_info:
+      kubeconfig: "{{ lookup('env','KUBECONFIG') }}"
+      context: "{{ kube_context }}"
+    k8s:
+      kubeconfig: "{{ lookup('env','KUBECONFIG') }}"
+      context: "{{ kube_context }}"
+    k8s_info:
+      kubeconfig: "{{ lookup('env','KUBECONFIG') }}"
+      context: "{{ kube_context }}"
+
   roles:
     - role: gitops-deploy-kiali
     - role: gitops-deploy-kubernetes-mcp

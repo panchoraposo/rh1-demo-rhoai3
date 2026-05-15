@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: jenkins
+  labels:
+    app.kubernetes.io/name: jenkins
+  annotations:
+    haproxy.router.openshift.io/timeout: 4m
+spec:
+  to:
+    kind: Service
+    name: jenkins
+  port:
+    targetPort: web
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+

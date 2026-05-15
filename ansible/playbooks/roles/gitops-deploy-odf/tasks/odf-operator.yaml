@@ -41,7 +41,7 @@
 
 - name: "Etiquetar los nodos de destino para ODF"
   ansible.builtin.command: >
-    oc label node {{ item.metadata.name }} cluster.ocs.openshift.io/openshift-storage='' --overwrite
+    oc --context {{ kube_context }} label node {{ item.metadata.name }} cluster.ocs.openshift.io/openshift-storage='' --overwrite
   loop: "{{ odf_target_nodes }}"
   loop_control:
     loop_var: item
