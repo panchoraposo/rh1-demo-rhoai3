@@ -1,0 +1,24 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: ${{ values.component_id }}
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: ${{ values.component_id }}:latest
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: ${{ values.source_repository }}
+      ref: main
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: java:openjdk-17-ubi8
+        namespace: openshift
+  triggers: []
+

@@ -1,0 +1,16 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ${{ values.component_id }}
+  labels:
+    app.kubernetes.io/name: ${{ values.component_id }}
+spec:
+  to:
+    kind: Service
+    name: ${{ values.component_id }}
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+

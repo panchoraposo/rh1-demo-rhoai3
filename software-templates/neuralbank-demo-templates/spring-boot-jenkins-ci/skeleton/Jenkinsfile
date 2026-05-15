@@ -1,66 +1,63 @@
 pipeline {
   agent any
   environment {
-    MAVEN_VERSION = '3.9.9'
-    MAVEN_URL = "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
-    # Pin JDK 17 download to keep Spring Boot 3 builds working (needs Java 17+).
-    JDK_URL = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.12_7.tar.gz'
-    TOOLS_DIR = "${JENKINS_HOME}/tool-cache"
-    MAVEN_HOME = "${TOOLS_DIR}/apache-maven-${MAVEN_VERSION}"
-    JDK_HOME = "${TOOLS_DIR}/jdk-17"
+    APP_NAME = '${{ values.component_id }}'
+    OCP_NAMESPACE = '${{ values.namespace }}'
   }
   stages {
-    stage('Tooling') {
-      steps {
-        sh '''
-          set -euo pipefail
-          : "${JENKINS_HOME:=/var/lib/jenkins}"
-          mkdir -p "${TOOLS_DIR}"
-
-          if [ ! -x "${MAVEN_HOME}/bin/mvn" ]; then
-            echo "Installing Maven ${MAVEN_VERSION}..."
-            rm -rf "${MAVEN_HOME}"
-            curl -fsSL "${MAVEN_URL}" | tar -xz -C "${TOOLS_DIR}"
-          fi
-
-          if [ ! -x "${JDK_HOME}/bin/java" ]; then
-            echo "Installing JDK 17..."
-            rm -rf "${JDK_HOME}"
-            curl -fsSL -L "${JDK_URL}" | tar -xz -C "${TOOLS_DIR}"
-            jdk_extracted=""
-            for d in "${TOOLS_DIR}"/jdk-17* "${TOOLS_DIR}"/OpenJDK17*; do
-              if [ -d "${d}" ] && [ "${d}" != "${JDK_HOME}" ]; then
-                jdk_extracted="${d}"
-                break
-              fi
-            done
-            if [ -z "${jdk_extracted}" ]; then
-              echo "ERROR: JDK extract directory not found under ${TOOLS_DIR}"
-              exit 1
-            fi
-            mv "${jdk_extracted}" "${JDK_HOME}"
-          fi
-        '''
-      }
-    }
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
-    stage('Test') {
+    stage('Wait for GitOps resources') {
       steps {
-        withEnv(["JAVA_HOME=${JDK_HOME}", "PATH+JAVA=${JDK_HOME}/bin", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-          sh 'java -version'
-          sh 'mvn -B -ntp test'
-        }
+        sh '''
+          set -euo pipefail
+          APP_NAME="${APP_NAME:-${JOB_NAME}}"
+          NS="${OCP_NAMESPACE}"
+          TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+          SERVER="https://kubernetes.default.svc:443"
+
+          for i in $(seq 1 60); do
+            if oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" get bc "${APP_NAME}" >/dev/null 2>&1 \\
+              && oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" get deploy "${APP_NAME}" >/dev/null 2>&1; then
+              echo "GitOps resources are present in ${NS}"
+              exit 0
+            fi
+            echo "Waiting for ArgoCD to create BuildConfig/Deployment in ${NS}... (${i}/60)"
+            sleep 5
+          done
+
+          echo "Timed out waiting for GitOps resources in ${NS}"
+          exit 1
+        '''
       }
     }
-    stage('Package') {
+    stage('Build image (OpenShift BuildConfig)') {
       steps {
-        withEnv(["JAVA_HOME=${JDK_HOME}", "PATH+JAVA=${JDK_HOME}/bin", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-          sh 'mvn -B -ntp package -DskipTests'
-        }
+        sh '''
+          set -euo pipefail
+          APP_NAME="${APP_NAME:-${JOB_NAME}}"
+          NS="${OCP_NAMESPACE}"
+          TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+          SERVER="https://kubernetes.default.svc:443"
+
+          oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" start-build "bc/${APP_NAME}" --wait --follow
+        '''
+      }
+    }
+    stage('Deploy (rollout)') {
+      steps {
+        sh '''
+          set -euo pipefail
+          APP_NAME="${APP_NAME:-${JOB_NAME}}"
+          NS="${OCP_NAMESPACE}"
+          TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+          SERVER="https://kubernetes.default.svc:443"
+
+          oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" rollout status "deploy/${APP_NAME}" --timeout=10m
+        '''
       }
     }
   }
