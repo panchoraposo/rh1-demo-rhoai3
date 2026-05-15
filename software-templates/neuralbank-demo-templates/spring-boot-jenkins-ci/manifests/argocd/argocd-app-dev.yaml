@@ -22,6 +22,13 @@ spec:
       kind: Route
       jsonPointers:
         - /spec/host
+        - /spec/to/weight
+        - /spec/wildcardPolicy
+    - group: ""
+      kind: Service
+      jsonPointers:
+        - /spec/clusterIP
+        - /spec/clusterIPs
   syncPolicy:
     automated:
       prune: true
