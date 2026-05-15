@@ -6,8 +6,6 @@ ${{values.description}}
 
 - Health: `/actuator/health`
 - Prometheus metrics: `/actuator/prometheus`
-- OpenAPI UI: `/swagger-ui.html`
-- OpenAPI spec (repo): `openapi.yaml`
 - AsyncAPI spec (repo): `asyncapi.yaml`
 
 ## Async API demo (SSE)

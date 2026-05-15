@@ -30,11 +30,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.springdoc</groupId>
-      <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-      <version>2.6.0</version>
-    </dependency>
     <!-- Observability: metrics + tracing (OTLP) -->
     <dependency>
       <groupId>io.micrometer</groupId>

@@ -1,20 +1,31 @@
 asyncapi: 2.6.0
 info:
-  title: NeuralBank Payments Events API
+  title: NeuralBank Payments Async API
   version: 1.0.0
   description: |
-    Demo event stream for the Payments workflow.
+    Demo async API for the Payments workflow.
 
-    This template emits lifecycle events over Server-Sent Events (SSE) at:
-    `GET /api/payments/{paymentId}/events`
-
-    The REST endpoints are documented separately in `openapi.yaml`.
+    This template accepts async payment submissions over HTTP and emits lifecycle events over Server-Sent Events (SSE).
 servers:
   http:
     url: /
     protocol: http
     description: HTTP server hosting the SSE event stream
 channels:
+  /api/payments:
+    description: Submit a payment for async processing (HTTP POST)
+    publish:
+      operationId: submitPayment
+      message:
+        $ref: '#/components/messages/PaymentRequest'
+
+  /api/payments/{paymentId}:
+    description: Read the current payment status (HTTP GET)
+    subscribe:
+      operationId: getPaymentStatus
+      message:
+        $ref: '#/components/messages/PaymentStatus'
+
   /api/payments/{paymentId}/events:
     description: Stream payment lifecycle events (SSE)
     parameters:
@@ -33,6 +44,16 @@ channels:
           - $ref: '#/components/messages/PaymentCompleted'
 components:
   messages:
+    PaymentRequest:
+      name: PAYMENT_REQUEST
+      title: Payment request
+      payload:
+        $ref: '#/components/schemas/PaymentRequest'
+    PaymentStatus:
+      name: PAYMENT_STATUS
+      title: Payment status
+      payload:
+        $ref: '#/components/schemas/PaymentStatus'
     PaymentAccepted:
       name: PAYMENT_ACCEPTED
       title: Payment accepted
@@ -59,6 +80,41 @@ components:
       payload:
         $ref: '#/components/schemas/PaymentCompletedEvent'
   schemas:
+    PaymentRequest:
+      type: object
+      required: [customerId, currency, amount]
+      properties:
+        customerId:
+          type: string
+        currency:
+          type: string
+          description: ISO currency code
+          example: CLP
+        amount:
+          type: number
+          format: double
+        reference:
+          type: string
+    PaymentStatus:
+      type: object
+      required: [id, state, updatedAt]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum: [ACCEPTED, PROCESSING, COMPLETED]
+        updatedAt:
+          type: string
+          format: date-time
+        decision:
+          type: string
+          enum: [APPROVED, REVIEW, DECLINED]
+          nullable: true
+        riskLevel:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, UNKNOWN]
+          nullable: true
     BaseEvent:
       type: object
       required: [type, paymentId, at, data]
