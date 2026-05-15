@@ -3,7 +3,7 @@ kind: Component
 metadata:
   name: ${{ values.component_id }}
   description: ${{ values.description }}
-  tags: [java, spring, spring-boot, rest]
+  tags: [java, spring, spring-boot, webflux, async-api, sse]
   annotations:
     # --- GitOps y Kubernetes ---
     argocd/app-selector: rht-gitops.com/${{ values.gitops_namespace }}=${{ values.component_id }}
@@ -19,4 +19,22 @@ spec:
   type: service
   lifecycle: development
   owner: group:default/${{ values.owner }}
+  providesApis:
+    - ${{ values.component_id }}-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ${{ values.component_id }}-api
+  description: Async Payments API (SSE) for demo purposes
+  tags: [openapi, async, sse, payments]
+  annotations:
+    backstage.io/source-location: url:https://${{ values.host }}/${{ values.destination }}
+spec:
+  type: openapi
+  lifecycle: development
+  owner: group:default/${{ values.owner }}
+  definition:
+    $text: ./openapi.yaml
 

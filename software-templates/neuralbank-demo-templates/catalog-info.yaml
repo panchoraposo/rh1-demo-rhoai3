@@ -307,8 +307,8 @@ kind: Template
 metadata:
   name: spring-boot-jenkins-ci
   title: Spring Boot 3 + Jenkins CI
-  description: Spring Boot 3 app scaffold + Jenkins pipeline provisioning (job + first run).
-  tags: [recommended, neuralbank, java, spring, spring-boot, jenkins, ci]
+  description: Spring Boot 3 async API (WebFlux + SSE) + Jenkins pipeline provisioning (job + first run).
+  tags: [recommended, neuralbank, java, spring, spring-boot, webflux, async-api, sse, jenkins, ci]
 spec:
   owner: developers
   type: service

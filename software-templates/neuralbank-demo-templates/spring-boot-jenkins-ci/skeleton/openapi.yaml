@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: NeuralBank Async Payments API
+  description: |
+    Demo async API for a payments workflow. The API accepts a payment request (202 Accepted),
+    exposes a status resource, and streams lifecycle events using Server-Sent Events (SSE).
+  version: 1.0.0
+servers:
+  - url: /
+tags:
+  - name: Payments
+paths:
+  /api/payments:
+    post:
+      tags: [Payments]
+      summary: Submit a payment (async)
+      operationId: submitPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            examples:
+              lowRisk:
+                value:
+                  customerId: cust-123
+                  currency: CLP
+                  amount: 12990.50
+                  reference: invoice-2026-00042
+              highRisk:
+                value:
+                  customerId: cust-999
+                  currency: USD
+                  amount: 9999.99
+                  reference: crypto-topup
+      responses:
+        "202":
+          description: Accepted for processing
+          headers:
+            Location:
+              description: URL of the status resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAccepted'
+  /api/payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get payment status
+      operationId: getPaymentStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+              examples:
+                completedApproved:
+                  value:
+                    id: 2b3a9aa1-7d3a-4fdb-9c5b-8a6e7d2b5d9c
+                    state: COMPLETED
+                    updatedAt: "2026-05-15T16:00:00Z"
+                    decision: APPROVED
+                    riskLevel: LOW
+        "404":
+          description: Not found
+  /api/payments/{id}/events:
+    get:
+      tags: [Payments]
+      summary: Stream payment events (SSE)
+      operationId: streamPaymentEvents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required: [customerId, currency, amount]
+      properties:
+        customerId:
+          type: string
+        currency:
+          type: string
+          description: ISO currency code
+          example: CLP
+        amount:
+          type: number
+          format: double
+        reference:
+          type: string
+    PaymentAccepted:
+      type: object
+      required: [id, status, statusUrl, eventsUrl]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          example: ACCEPTED
+        statusUrl:
+          type: string
+        eventsUrl:
+          type: string
+    PaymentStatus:
+      type: object
+      required: [id, state, updatedAt]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum: [ACCEPTED, PROCESSING, COMPLETED]
+        updatedAt:
+          type: string
+          format: date-time
+        decision:
+          type: string
+          enum: [APPROVED, REVIEW, DECLINED]
+          nullable: true
+        riskLevel:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, UNKNOWN]
+          nullable: true
+
