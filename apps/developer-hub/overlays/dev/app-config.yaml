@@ -242,6 +242,10 @@ argocd:
           username: admin
           password: ${ARGOCD_PASSWORD}
 jenkins:
+  # El plugin Jenkins backend viene con config por defecto basada en `instances`.
+  # Para evitar conflicto con el módulo de Scaffolder (que usa la config top-level),
+  # forzamos `instances` a vacío.
+  instances: []
   baseUrl: ${JENKINS_URL}
   username: ${JENKINS_USERNAME}
   apiKey: ${JENKINS_TOKEN}
