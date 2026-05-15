@@ -4,6 +4,7 @@ metadata:
   name: ${{ values.component_id }}
   labels:
     app.kubernetes.io/name: ${{ values.component_id }}
+    backstage.io/kubernetes-id: ${{ values.component_id }}
 spec:
   to:
     kind: Service

@@ -4,6 +4,7 @@ metadata:
   name: ${{ values.component_id }}
   labels:
     app.kubernetes.io/name: ${{ values.component_id }}
+    backstage.io/kubernetes-id: ${{ values.component_id }}
   annotations:
     image.openshift.io/triggers: >-
       [{"from":{"kind":"ImageStreamTag","name":"${{ values.component_id }}:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]
