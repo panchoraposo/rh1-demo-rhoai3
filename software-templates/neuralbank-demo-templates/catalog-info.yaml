@@ -339,9 +339,8 @@ spec:
             host:
               title: Repo Host
               type: string
-              default: "gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com"
-              enum:
-                - "gitlab-gitlab.apps.ocp.l6vf4.sandbox744.opentlc.com"
+              description: GitLab host (must match Developer Hub `integrations.gitlab[*].host`)
+              default: "gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com"
         gitlab_group:
           title: GitLab Group
           type: string
