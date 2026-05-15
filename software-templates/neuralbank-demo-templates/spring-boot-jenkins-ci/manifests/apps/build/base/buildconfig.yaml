@@ -3,6 +3,11 @@ kind: BuildConfig
 metadata:
   name: ${{ values.component_id }}
 spec:
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
   output:
     to:
       kind: ImageStreamTag
