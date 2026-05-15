@@ -17,6 +17,16 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: ${{ values.namespace }}
+  ignoreDifferences:
+    - group: build.openshift.io
+      kind: BuildConfig
+      jsonPointers:
+        - /spec/failedBuildsHistoryLimit
+        - /spec/successfulBuildsHistoryLimit
+        - /spec/resources
+        - /spec/postCommit
+        - /spec/nodeSelector
+        - /spec/triggers
   syncPolicy:
     automated:
       prune: true
