@@ -1,6 +1,48 @@
 pipeline {
   agent any
+  environment {
+    MAVEN_VERSION = '3.9.9'
+    MAVEN_URL = "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+    # Pin JDK 17 download to keep Spring Boot 3 builds working (needs Java 17+).
+    JDK_URL = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.12_7.tar.gz'
+    TOOLS_DIR = "${JENKINS_HOME}/tool-cache"
+    MAVEN_HOME = "${TOOLS_DIR}/apache-maven-${MAVEN_VERSION}"
+    JDK_HOME = "${TOOLS_DIR}/jdk-17"
+  }
   stages {
+    stage('Tooling') {
+      steps {
+        sh '''
+          set -euo pipefail
+          : "${JENKINS_HOME:=/var/lib/jenkins}"
+          mkdir -p "${TOOLS_DIR}"
+
+          if [ ! -x "${MAVEN_HOME}/bin/mvn" ]; then
+            echo "Installing Maven ${MAVEN_VERSION}..."
+            rm -rf "${MAVEN_HOME}"
+            curl -fsSL "${MAVEN_URL}" | tar -xz -C "${TOOLS_DIR}"
+          fi
+
+          if [ ! -x "${JDK_HOME}/bin/java" ]; then
+            echo "Installing JDK 17..."
+            rm -rf "${JDK_HOME}"
+            curl -fsSL -L "${JDK_URL}" | tar -xz -C "${TOOLS_DIR}"
+            jdk_extracted=""
+            for d in "${TOOLS_DIR}"/jdk-17* "${TOOLS_DIR}"/OpenJDK17*; do
+              if [ -d "${d}" ] && [ "${d}" != "${JDK_HOME}" ]; then
+                jdk_extracted="${d}"
+                break
+              fi
+            done
+            if [ -z "${jdk_extracted}" ]; then
+              echo "ERROR: JDK extract directory not found under ${TOOLS_DIR}"
+              exit 1
+            fi
+            mv "${jdk_extracted}" "${JDK_HOME}"
+          fi
+        '''
+      }
+    }
     stage('Checkout') {
       steps {
         checkout scm
@@ -8,12 +50,17 @@ pipeline {
     }
     stage('Test') {
       steps {
-        sh 'mvn -B -ntp test'
+        withEnv(["JAVA_HOME=${JDK_HOME}", "PATH+JAVA=${JDK_HOME}/bin", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
+          sh 'java -version'
+          sh 'mvn -B -ntp test'
+        }
       }
     }
     stage('Package') {
       steps {
-        sh 'mvn -B -ntp package -DskipTests'
+        withEnv(["JAVA_HOME=${JDK_HOME}", "PATH+JAVA=${JDK_HOME}/bin", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
+          sh 'mvn -B -ntp package -DskipTests'
+        }
       }
     }
   }
