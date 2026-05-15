@@ -127,3 +127,122 @@
   retries: 30
   delay: 10
 
+- name: Verificar si ya existe Secret del runner shared con token
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ gitlab_namespace | default('gitlab') }}"
+    name: "{{ gitlab_shared_runner_secret_name | default('gitlab-runner-shared') }}"
+  register: existing_shared_runner_secret
+  failed_when: false
+
+- name: Capturar runner-token shared existente (si aplica)
+  ansible.builtin.set_fact:
+    gitlab_shared_runner_token_existing: >-
+      {{
+        (
+          existing_shared_runner_secret.resources[0].data['runner-token']
+          | default('')
+          | b64decode
+        ) if (existing_shared_runner_secret.resources is defined and existing_shared_runner_secret.resources | length > 0)
+        else ''
+      }}
+  no_log: true
+
+- name: Crear runner shared (token moderno) para pipelines (GitLab 17+)
+  ansible.builtin.uri:
+    url: "https://{{ gitlab_host }}/api/v4/user/runners"
+    method: POST
+    headers:
+      PRIVATE-TOKEN: "{{ gitlab_pat }}"
+    body_format: form-urlencoded
+    body:
+      runner_type: instance_type
+      description: shared-runner
+      # Sin tags + run_untagged=true para ejecutar pipelines por defecto.
+      run_untagged: true
+      locked: false
+      access_level: not_protected
+    return_content: true
+    status_code: [201, 502, 503]
+    validate_certs: "{{ validate_ssl_certs }}"
+  register: created_shared_runner
+  until: created_shared_runner.status == 201
+  retries: 10
+  delay: 10
+  when: gitlab_shared_runner_token_existing | length == 0
+  no_log: true
+
+- name: Capturar runner-token shared a usar
+  ansible.builtin.set_fact:
+    gitlab_shared_runner_token: "{{ (gitlab_shared_runner_token_existing if (gitlab_shared_runner_token_existing | length > 0) else created_shared_runner.json.token) }}"
+  no_log: true
+
+- name: Crear/actualizar Secret para registro de GitLab Runner shared (sin runner-token)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ gitlab_shared_runner_secret_name | default('gitlab-runner-shared') }}"
+        namespace: "{{ gitlab_namespace | default('gitlab') }}"
+      type: Opaque
+      stringData:
+        runner-registration-token: ""
+        runner-token: "{{ gitlab_shared_runner_token }}"
+  no_log: true
+
+- name: Instalar/actualizar GitLab Runner shared (Kubernetes executor) para pipelines
+  ansible.builtin.shell: |
+    set -euo pipefail
+    KUBECONFIG_ARG=""
+    CTX_ARG=""
+    if [[ -n "${KUBECONFIG:-}" ]]; then
+      KUBECONFIG_ARG="--kubeconfig ${KUBECONFIG}"
+    fi
+    if [[ -n "${K8S_AUTH_CONTEXT:-}" ]]; then
+      CTX_ARG="--kube-context ${K8S_AUTH_CONTEXT}"
+    fi
+    helm upgrade --install {{ gitlab_shared_runner_release_name | default('gitlab-runner-shared') }} gitlab/gitlab-runner \
+      ${KUBECONFIG_ARG} ${CTX_ARG} \
+      --namespace {{ gitlab_namespace | default('gitlab') }} \
+      --set gitlabUrl="https://{{ gitlab_host }}/" \
+      --set rbac.create=true \
+      --set serviceAccount.create=true \
+      --set serviceAccount.name="{{ gitlab_shared_runner_sa_name | default('gitlab-runner-shared') }}" \
+      --set runners.secret="{{ gitlab_shared_runner_secret_name | default('gitlab-runner-shared') }}" \
+      --set runners.tags="" \
+      --set runners.runUntagged=true \
+      --set runners.locked=false
+  args:
+    executable: /bin/bash
+
+- name: Permitir anyuid SCC al ServiceAccount del runner shared (OpenShift)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CTX_ARGS=()
+    if [[ -n "${KUBECONFIG:-}" ]]; then
+      CTX_ARGS+=(--kubeconfig "${KUBECONFIG}")
+    fi
+    if [[ -n "${K8S_AUTH_CONTEXT:-}" ]]; then
+      CTX_ARGS+=(--context "${K8S_AUTH_CONTEXT}")
+    fi
+    oc "${CTX_ARGS[@]}" -n {{ gitlab_namespace | default('gitlab') }} adm policy add-scc-to-user anyuid -z {{ gitlab_shared_runner_sa_name | default('gitlab-runner-shared') }} >/dev/null 2>&1 || true
+  args:
+    executable: /bin/bash
+
+- name: Esperar que el deployment del runner shared esté Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ gitlab_namespace | default('gitlab') }}"
+    name: "{{ gitlab_shared_runner_release_name | default('gitlab-runner-shared') }}"
+  register: shared_runner_deploy
+  until:
+    - shared_runner_deploy.resources is defined
+    - shared_runner_deploy.resources | length > 0
+    - (shared_runner_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
+  retries: 30
+  delay: 10
+
