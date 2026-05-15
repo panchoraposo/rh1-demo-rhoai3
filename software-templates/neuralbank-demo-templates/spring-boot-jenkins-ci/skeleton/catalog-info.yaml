@@ -20,14 +20,15 @@ spec:
   lifecycle: development
   owner: group:default/${{ values.owner }}
   providesApis:
-    - ${{ values.component_id }}-api
+    - ${{ values.component_id }}-http-api
+    - ${{ values.component_id }}-events-api
 
 ---
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: ${{ values.component_id }}-api
-  description: Async Payments API (SSE) for demo purposes
+  name: ${{ values.component_id }}-http-api
+  description: Payments HTTP API (submit + status)
   tags: [openapi, async, sse, payments]
   annotations:
     backstage.io/source-location: url:https://${{ values.host }}/${{ values.destination }}
@@ -37,4 +38,20 @@ spec:
   owner: group:default/${{ values.owner }}
   definition:
     $text: ./openapi.yaml
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ${{ values.component_id }}-events-api
+  description: Payments events stream (SSE) documented with AsyncAPI
+  tags: [asyncapi, async, sse, payments, events]
+  annotations:
+    backstage.io/source-location: url:https://${{ values.host }}/${{ values.destination }}
+spec:
+  type: asyncapi
+  lifecycle: development
+  owner: group:default/${{ values.owner }}
+  definition:
+    $text: ./asyncapi.yaml
 

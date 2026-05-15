@@ -1,0 +1,149 @@
+asyncapi: 2.6.0
+info:
+  title: NeuralBank Payments Events API
+  version: 1.0.0
+  description: |
+    Demo event stream for the Payments workflow.
+
+    This template emits lifecycle events over Server-Sent Events (SSE) at:
+    `GET /api/payments/{paymentId}/events`
+
+    The REST endpoints are documented separately in `openapi.yaml`.
+servers:
+  http:
+    url: /
+    protocol: http
+    description: HTTP server hosting the SSE event stream
+channels:
+  /api/payments/{paymentId}/events:
+    description: Stream payment lifecycle events (SSE)
+    parameters:
+      paymentId:
+        description: Payment identifier
+        schema:
+          type: string
+    subscribe:
+      operationId: streamPaymentEvents
+      message:
+        oneOf:
+          - $ref: '#/components/messages/PaymentAccepted'
+          - $ref: '#/components/messages/PaymentProcessing'
+          - $ref: '#/components/messages/RiskScored'
+          - $ref: '#/components/messages/PaymentDecided'
+          - $ref: '#/components/messages/PaymentCompleted'
+components:
+  messages:
+    PaymentAccepted:
+      name: PAYMENT_ACCEPTED
+      title: Payment accepted
+      payload:
+        $ref: '#/components/schemas/PaymentAcceptedEvent'
+    PaymentProcessing:
+      name: PAYMENT_PROCESSING
+      title: Payment processing
+      payload:
+        $ref: '#/components/schemas/PaymentProcessingEvent'
+    RiskScored:
+      name: RISK_SCORED
+      title: Risk scored
+      payload:
+        $ref: '#/components/schemas/RiskScoredEvent'
+    PaymentDecided:
+      name: PAYMENT_DECIDED
+      title: Payment decided
+      payload:
+        $ref: '#/components/schemas/PaymentDecidedEvent'
+    PaymentCompleted:
+      name: PAYMENT_COMPLETED
+      title: Payment completed
+      payload:
+        $ref: '#/components/schemas/PaymentCompletedEvent'
+  schemas:
+    BaseEvent:
+      type: object
+      required: [type, paymentId, at, data]
+      properties:
+        type:
+          type: string
+        paymentId:
+          type: string
+        at:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: true
+    PaymentAcceptedEvent:
+      allOf:
+        - $ref: '#/components/schemas/BaseEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [PAYMENT_ACCEPTED]
+            data:
+              type: object
+              required: [customerId, amount, currency]
+              properties:
+                customerId: { type: string }
+                amount: { type: number, format: double }
+                currency: { type: string }
+                reference: { type: string }
+    PaymentProcessingEvent:
+      allOf:
+        - $ref: '#/components/schemas/BaseEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [PAYMENT_PROCESSING]
+            data:
+              type: object
+              properties:
+                step: { type: string }
+    RiskScoredEvent:
+      allOf:
+        - $ref: '#/components/schemas/BaseEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [RISK_SCORED]
+            data:
+              type: object
+              properties:
+                riskLevel:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH, UNKNOWN]
+    PaymentDecidedEvent:
+      allOf:
+        - $ref: '#/components/schemas/BaseEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [PAYMENT_DECIDED]
+            data:
+              type: object
+              properties:
+                decision:
+                  type: string
+                  enum: [APPROVED, REVIEW, DECLINED]
+                riskLevel:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH, UNKNOWN]
+    PaymentCompletedEvent:
+      allOf:
+        - $ref: '#/components/schemas/BaseEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [PAYMENT_COMPLETED]
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [APPROVED, REVIEW, DECLINED]
+
