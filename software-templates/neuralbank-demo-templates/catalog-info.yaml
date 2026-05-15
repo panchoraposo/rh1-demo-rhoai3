@@ -348,11 +348,6 @@ spec:
     - title: GitOps & Deployment
       required: []
       properties:
-        namespace:
-          title: Target namespace
-          type: string
-          description: Namespace where ArgoCD will deploy the app resources.
-          default: "${{ parameters.component_id }}-dev"
         gitops_namespace:
           title: Argo CD namespace
           type: string
@@ -374,7 +369,7 @@ spec:
           host: ${{ parameters.repo.host }}
           destination: ${{ parameters.gitlab_group }}/${{ parameters.component_id }}
           jenkins_job_name: ${{ parameters.component_id }}
-          namespace: ${{ parameters.namespace }}
+          namespace: ${{ parameters.component_id }}-dev
           gitops_namespace: ${{ parameters.gitops_namespace }}
           gitops_project: ${{ parameters.gitops_project }}
         targetPath: ./${{ parameters.component_id }}
@@ -402,7 +397,7 @@ spec:
         url: ./spring-boot-jenkins-ci/manifests
         values:
           component_id: ${{ parameters.component_id }}
-          namespace: ${{ parameters.namespace }}
+          namespace: ${{ parameters.component_id }}-dev
           owner: ${{ parameters.owner }}
           gitops_namespace: ${{ parameters.gitops_namespace }}
           gitops_project: ${{ parameters.gitops_project }}
