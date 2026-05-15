@@ -17,6 +17,11 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: ${{ values.namespace }}
+  ignoreDifferences:
+    - group: route.openshift.io
+      kind: Route
+      jsonPointers:
+        - /spec/host
   syncPolicy:
     automated:
       prune: true
