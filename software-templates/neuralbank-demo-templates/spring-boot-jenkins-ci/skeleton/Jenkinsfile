@@ -56,6 +56,11 @@ pipeline {
           TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
           SERVER="https://kubernetes.default.svc:443"
 
+          # OpenShift deploys will not automatically roll when the ImageStreamTag updates unless you use
+          # an OpenShift-specific trigger annotation. Instead, we pin the Deployment to the built digest.
+          DIGEST_REF="$(oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" get istag "${APP_NAME}:latest" -o jsonpath='{.image.dockerImageReference}')"
+          oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" set image "deploy/${APP_NAME}" "app=${DIGEST_REF}"
+
           oc --token="${TOKEN}" --server="${SERVER}" --insecure-skip-tls-verify=true -n "${NS}" rollout status "deploy/${APP_NAME}" --timeout=10m
         '''
       }
