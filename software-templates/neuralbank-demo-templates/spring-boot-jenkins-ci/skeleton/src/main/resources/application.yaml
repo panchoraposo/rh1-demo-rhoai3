@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: ${{ values.component_id }}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      # OTLP/HTTP is enabled in the cluster collector (dev-collector:4318)
+      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://dev-collector.observability.svc.cluster.local:4318/v1/traces}
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://dev-collector.observability.svc.cluster.local:4318/v1/metrics}
+
