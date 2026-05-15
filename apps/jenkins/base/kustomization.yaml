@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - rolebinding.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - service-jnlp.yaml
+  - route.yaml
+

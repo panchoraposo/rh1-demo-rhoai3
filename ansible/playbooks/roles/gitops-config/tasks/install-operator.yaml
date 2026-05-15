@@ -44,7 +44,7 @@
 
 - name: Wait for ArgoCD webhook service endpoints
   shell: >
-    oc get endpoints openshift-gitops-operator-controller-manager-service -n openshift-gitops-operator -o jsonpath="{.subsets}"
+    oc --context {{ kube_context }} get endpoints openshift-gitops-operator-controller-manager-service -n openshift-gitops-operator -o jsonpath="{.subsets}"
   register: webhook_endpoints
   until: webhook_endpoints.stdout != ""
   retries: 20

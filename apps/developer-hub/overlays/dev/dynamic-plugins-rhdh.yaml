@@ -78,3 +78,16 @@ data:
       - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/red-hat-developer-hub-backstage-plugin-techdocs-mcp-tool:bs_1.45.3__0.3.2!red-hat-developer-hub-backstage-plugin-techdocs-mcp-tool
         disabled: false
 
+      ## --- JENKINS_PLUGINS ---
+      # Backend + UI para ver estado del pipeline en el portal
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-jenkins-backend:bs_1.45.3__0.22.0
+        disabled: false
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-jenkins:bs_1.45.3__0.26.0
+        disabled: false
+      # Acciones Scaffolder: jenkins:job:create / jenkins:job:build
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-scaffolder-backend-module-jenkins:bs_1.45.3__0.16.0
+        disabled: false
+      # Acciones Scaffolder: http:request (útil para futuras integraciones)
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-scaffolder-backend-module-http-request:bs_1.45.3__5.5.1
+        disabled: false
+

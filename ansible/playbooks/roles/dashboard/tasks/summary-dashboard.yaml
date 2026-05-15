@@ -22,7 +22,7 @@
 
 - name: "Obtener Password Admin de ArgoCD"
   ansible.builtin.shell: |
-    oc extract secret/openshift-gitops-cluster -n openshift-gitops --to=- --keys=admin.password
+    oc --context {{ kube_context }} extract secret/openshift-gitops-cluster -n openshift-gitops --to=- --keys=admin.password
   register: argocd_pass_cmd
   changed_when: false
   ignore_errors: true

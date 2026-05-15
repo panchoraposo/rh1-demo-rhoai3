@@ -8,7 +8,7 @@
     namespace: openshift-operators
     definition:
       spec:
-        channel: "stable"
+        channel: "stable-3.1"
         installPlanApproval: Automatic
 
 - name: "Pausa para generación del InstallPlan"
@@ -17,26 +17,35 @@
 
 - name: "Aprobar actualización de Service Mesh Operator"
   ansible.builtin.shell: |
-    for ip in $(oc get installplan -n openshift-operators -o jsonpath='{range .items[?(@.status.phase=="RequiresApproval")]}{.metadata.name}{"\n"}{end}'); do
+    for ip in $(oc --context {{ kube_context }} get installplan -n openshift-operators -o jsonpath='{range .items[?(@.status.phase=="RequiresApproval")]}{.metadata.name}{"\n"}{end}'); do
       echo "Aprobando InstallPlan: $ip"
-      oc patch installplan $ip -n openshift-operators --type merge --patch '{"spec":{"approved":true}}'
+      oc --context {{ kube_context }} patch installplan $ip -n openshift-operators --type merge --patch '{"spec":{"approved":true}}'
     done
   register: approve_result
   changed_when: "'Aprobando' in approve_result.stdout"
 
 - name: "Esperar a que el CSV de Service Mesh esté instalado (v3.x)"
   kubernetes.core.k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: ClusterServiceVersion
+    api_version: apps/v1
+    kind: Deployment
+    name: servicemesh-operator3
     namespace: openshift-operators
-  register: csv_list
+  register: sm_operator_deploy
   until:
-    - csv_list.resources | json_query("[?contains(metadata.name, 'servicemeshoperator3.v3.')]") | length > 0
-    - (csv_list.resources
-       | json_query("[?contains(metadata.name, 'servicemeshoperator3.v3.')]")
-       | sort(attribute='metadata.creationTimestamp')
-       | last).status.phase | default('') == "Succeeded"
-  retries: 60
+    - sm_operator_deploy.resources | length > 0
+    - (sm_operator_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
+  retries: 90
+  delay: 10
+
+- name: "Verificar que las CRDs de Service Mesh estén presentes (Sail/Istio)"
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: istios.sailoperator.io
+  register: sm_crd_check
+  until:
+    - sm_crd_check.resources | length > 0
+  retries: 30
   delay: 10
 
 - name: "Crear namespace 'istio-system'"
