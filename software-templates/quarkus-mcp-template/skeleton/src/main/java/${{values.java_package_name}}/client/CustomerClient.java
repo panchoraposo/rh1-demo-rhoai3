@@ -1,12 +1,12 @@
 package ${{values.java_package_name}}.client;
 
-import com.neuralbank.dto.request.CreateCustomerRequest;
-import com.neuralbank.dto.request.UpdateCustomerRequest;
-import com.neuralbank.dto.response.CustomerResponse;
-import com.neuralbank.dto.response.CustomerSummaryResponse;
-import com.neuralbank.dto.response.CreditScoreResponse;
-import com.neuralbank.dto.response.PageResponse;
-import com.neuralbank.enums.CustomerType;
+import ${{values.java_package_name}}.dto.request.CreateCustomerRequest;
+import ${{values.java_package_name}}.dto.request.UpdateCustomerRequest;
+import ${{values.java_package_name}}.dto.response.CustomerResponse;
+import ${{values.java_package_name}}.dto.response.CustomerSummaryResponse;
+import ${{values.java_package_name}}.dto.response.CreditScoreResponse;
+import ${{values.java_package_name}}.dto.response.PageResponse;
+import ${{values.java_package_name}}.enums.CustomerType;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
