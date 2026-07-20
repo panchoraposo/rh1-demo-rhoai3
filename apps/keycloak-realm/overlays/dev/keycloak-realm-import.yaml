@@ -15,6 +15,10 @@ spec:
     users:
       - username: dev1
         enabled: true
+        email: dev1@example.com
+        emailVerified: true
+        firstName: dev1
+        lastName: Backstage
         credentials:
           - type: password
             value: backstage
@@ -23,6 +27,10 @@ spec:
           - developers
       - username: dev2
         enabled: true
+        email: dev2@example.com
+        emailVerified: true
+        firstName: dev2
+        lastName: Backstage
         credentials:
           - type: password
             value: backstage
@@ -31,6 +39,10 @@ spec:
           - developers
       - username: dev3
         enabled: true
+        email: dev3@example.com
+        emailVerified: true
+        firstName: dev3
+        lastName: Backstage
         credentials:
           - type: password
             value: backstage
@@ -39,6 +51,10 @@ spec:
           - developers
       - username: pe1
         enabled: true
+        email: pe1@example.com
+        emailVerified: true
+        firstName: pe1
+        lastName: Backstage
         credentials:
           - type: password
             value: backstage
@@ -47,6 +63,10 @@ spec:
           - platform-engineers
       - username: pe2
         enabled: true
+        email: pe2@example.com
+        emailVerified: true
+        firstName: pe2
+        lastName: Backstage
         credentials:
           - type: password
             value: backstage
@@ -55,6 +75,10 @@ spec:
           - platform-engineers
       - username: pe3
         enabled: true
+        email: pe3@example.com
+        emailVerified: true
+        firstName: pe3
+        lastName: Backstage
         credentials:
           - type: password
             value: backstage
