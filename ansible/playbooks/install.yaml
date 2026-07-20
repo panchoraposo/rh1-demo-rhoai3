@@ -8,6 +8,7 @@
     enable_ai_stack: "{{ lookup('env','ENABLE_AI_STACK') | default(false, true) }}"
     enable_jenkins: "{{ lookup('env','ENABLE_JENKINS') | default(true, true) }}"
     enable_service_mesh: "{{ lookup('env','ENABLE_SERVICE_MESH') | default(true, true) }}"
+    enable_rhtpa: "{{ lookup('env','ENABLE_RHTPA') | default(false, true) }}"
 
   module_defaults:
     kubernetes.core.k8s:
@@ -36,6 +37,8 @@
     - role: keycloak-config
     - role: gitops-deploy-rhtas
     - role: gitops-deploy-enterprise-contract
+    - role: gitops-deploy-rhtpa
+      when: enable_rhtpa | bool
     - role: gitops-deploy-gitlab
     - role: gitops-deploy-odf
     - role: gitops-deploy-quay
