@@ -1,4 +1,13 @@
 ---
+- name: "Jenkins: Asegurar namespace {{ jenkins_namespace }}"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ jenkins_namespace }}"
+
 - name: "Jenkins: Crear Role para ArgoCD en namespace {{ jenkins_namespace }}"
   kubernetes.core.k8s:
     state: present
