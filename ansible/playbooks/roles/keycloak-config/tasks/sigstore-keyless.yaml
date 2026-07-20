@@ -22,6 +22,16 @@
       protocol: openid-connect
     status_code: [201, 409]
     validate_certs: false
+  register: sigstore_client_create
+  failed_when: false
+  until: sigstore_client_create.status in [201, 409]
+  retries: 10
+  delay: 3
+
+- name: Fail if unable to create trusted-artifact-signer client
+  ansible.builtin.fail:
+    msg: "{{ sigstore_client_create.msg | default('No se pudo crear el cliente trusted-artifact-signer') }}"
+  when: sigstore_client_create.status not in [201, 409]
 
 - name: Lookup Keycloak client id for trusted-artifact-signer
   ansible.builtin.uri:
@@ -31,6 +41,15 @@
       Authorization: "Bearer {{ kc_token }}"
     validate_certs: false
   register: sigstore_client_info
+  failed_when: false
+  until: sigstore_client_info.status == 200
+  retries: 10
+  delay: 3
+
+- name: Fail if unable to lookup trusted-artifact-signer client
+  ansible.builtin.fail:
+    msg: "{{ sigstore_client_info.msg | default('No se pudo obtener el cliente trusted-artifact-signer') }}"
+  when: sigstore_client_info.status != 200
 
 - name: Validate trusted-artifact-signer client exists
   ansible.builtin.fail:
@@ -51,6 +70,15 @@
     return_content: true
     validate_certs: false
   register: sigstore_client_secret_response
+  failed_when: false
+  until: sigstore_client_secret_response.status == 200
+  retries: 10
+  delay: 3
+
+- name: Fail if unable to regenerate trusted-artifact-signer client secret
+  ansible.builtin.fail:
+    msg: "{{ sigstore_client_secret_response.msg | default('No se pudo regenerar el client secret') }}"
+  when: sigstore_client_secret_response.status != 200
 
 - name: Store sigstore-cli client secret
   ansible.builtin.set_fact:
@@ -74,6 +102,16 @@
       email: "sigstore-signer@rhdh.com"
     status_code: [201, 409]
     validate_certs: false
+  register: sigstore_user_create
+  failed_when: false
+  until: sigstore_user_create.status in [201, 409]
+  retries: 10
+  delay: 3
+
+- name: Fail if unable to create sigstore-signer user
+  ansible.builtin.fail:
+    msg: "{{ sigstore_user_create.msg | default('No se pudo crear el usuario sigstore-signer') }}"
+  when: sigstore_user_create.status not in [201, 409]
 
 - name: Lookup Keyless signing user id
   ansible.builtin.uri:
@@ -83,6 +121,15 @@
       Authorization: "Bearer {{ kc_token }}"
     validate_certs: false
   register: sigstore_user_info
+  failed_when: false
+  until: sigstore_user_info.status == 200
+  retries: 10
+  delay: 3
+
+- name: Fail if unable to lookup sigstore-signer user
+  ansible.builtin.fail:
+    msg: "{{ sigstore_user_info.msg | default('No se pudo obtener el usuario sigstore-signer') }}"
+  when: sigstore_user_info.status != 200
 
 - name: Validate sigstore-signer user exists
   ansible.builtin.fail:
@@ -109,6 +156,16 @@
     status_code: 204
     validate_certs: false
   no_log: true
+  register: sigstore_user_password_set
+  failed_when: false
+  until: sigstore_user_password_set.status == 204
+  retries: 10
+  delay: 3
+
+- name: Fail if unable to set sigstore-signer password
+  ansible.builtin.fail:
+    msg: "{{ sigstore_user_password_set.msg | default('No se pudo setear el password de sigstore-signer') }}"
+  when: sigstore_user_password_set.status != 204
 
 - name: Store keyless signing creds in Vault for External Secrets
   kubernetes.core.k8s_exec:
