@@ -1,3 +1,6 @@
+- name: Refresh admin token (before user provisioning)
+  ansible.builtin.include_tasks: _refresh-admin-token.yaml
+
 - name: Crear usuarios en Keycloak
   ansible.builtin.include_tasks: _create-one-user.yaml
   loop: "{{ user_list }}"
@@ -8,11 +11,17 @@
   ansible.builtin.set_fact:
     kc_user_ids: {}
 
+- name: Refresh admin token (before user lookup)
+  ansible.builtin.include_tasks: _refresh-admin-token.yaml
+
 - name: Obtener ID de usuarios recién creados
   ansible.builtin.include_tasks: _lookup-one-user.yaml
   loop: "{{ user_list }}"
   loop_control:
     loop_var: kc_user
+
+- name: Refresh admin token (before group operations)
+  ansible.builtin.include_tasks: _refresh-admin-token.yaml
 
 - name: Obtener ID del grupo {{ group_name }}
   ansible.builtin.uri:
@@ -35,6 +44,9 @@
       {{
         (groups_result.json | selectattr('name', 'equalto', group_name) | list)[0].id
       }}
+
+- name: Refresh admin token (before group assignment)
+  ansible.builtin.include_tasks: _refresh-admin-token.yaml
 
 - name: Asociar usuarios al grupo {{ group_name }}
   ansible.builtin.uri:

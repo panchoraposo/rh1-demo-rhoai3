@@ -1,0 +1,23 @@
+- name: Refresh Keycloak admin token
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body:
+      username: "{{ keycloak_admin_user }}"
+      password: "{{ keycloak_admin_password }}"
+      client_id: "admin-cli"
+      grant_type: "password"
+    body_format: form-urlencoded
+    return_content: true
+    validate_certs: false
+  register: kc_token_response_refresh
+  failed_when: false
+  until: kc_token_response_refresh.status == 200
+  retries: 10
+  delay: 6
+
+- name: Store refreshed Keycloak token
+  ansible.builtin.set_fact:
+    kc_token: "{{ kc_token_response_refresh.json.access_token }}"
+  no_log: true
+
