@@ -36,3 +36,30 @@
   retries: 10
   delay: 10
   until: secret_check.rc == 0
+
+- name: Resetear import de realm Backstage (si existe)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: k8s.keycloak.org/v2alpha1
+    kind: KeycloakRealmImport
+    name: backstage-realm
+    namespace: keycloak
+  ignore_errors: true
+
+- name: Aplicar KeycloakRealmImport (Backstage)
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../apps/keycloak-realm/overlays/dev/keycloak-realm-import.yaml"
+
+- name: Esperar a que el Job de importación del realm Backstage finalice
+  kubernetes.core.k8s_info:
+    api_version: batch/v1
+    kind: Job
+    name: backstage-realm
+    namespace: keycloak
+  register: backstage_realm_job
+  until:
+    - backstage_realm_job.resources | length > 0
+    - (backstage_realm_job.resources[0].status.succeeded | default(0) | int) >= 1
+  retries: 60
+  delay: 5

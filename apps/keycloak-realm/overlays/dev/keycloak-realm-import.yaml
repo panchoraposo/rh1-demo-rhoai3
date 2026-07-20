@@ -6,7 +6,58 @@ metadata:
 spec:
   keycloakCRName: keycloak
   realm:
-    from:
-      configMap:
-        name: backstage-realm-config
-        key: backstage-realm.json
+    realm: backstage
+    enabled: true
+    displayName: Backstage Realm
+    groups:
+      - name: developers
+      - name: platform-engineers
+    users:
+      - username: dev1
+        enabled: true
+        credentials:
+          - type: password
+            value: backstage
+            temporary: false
+        groups:
+          - developers
+      - username: dev2
+        enabled: true
+        credentials:
+          - type: password
+            value: backstage
+            temporary: false
+        groups:
+          - developers
+      - username: dev3
+        enabled: true
+        credentials:
+          - type: password
+            value: backstage
+            temporary: false
+        groups:
+          - developers
+      - username: pe1
+        enabled: true
+        credentials:
+          - type: password
+            value: backstage
+            temporary: false
+        groups:
+          - platform-engineers
+      - username: pe2
+        enabled: true
+        credentials:
+          - type: password
+            value: backstage
+            temporary: false
+        groups:
+          - platform-engineers
+      - username: pe3
+        enabled: true
+        credentials:
+          - type: password
+            value: backstage
+            temporary: false
+        groups:
+          - platform-engineers
