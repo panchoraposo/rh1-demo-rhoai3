@@ -11,7 +11,9 @@ spec:
     externalAccess:
       enabled: {{ .Values.externalAccess.fulcio }}
       host: {{ printf "fulcio.%s" .Values.openshift_base_domain | quote }}
-    certificate: {}
+    certificate:
+      organizationName: {{ .Values.organization.name | quote }}
+      organizationEmail: {{ .Values.organization.email | quote }}
     config:
       OIDCIssuers:
         - ClientID: {{ .Values.client_id | quote }}
@@ -31,5 +33,14 @@ spec:
       enabled: {{ .Values.externalAccess.tsa }}
       host: {{ printf "tsa.%s" .Values.openshift_base_domain | quote }}
     signer:
-      certificateChain: {}
+      certificateChain:
+        rootCA:
+          organizationName: {{ .Values.organization.name | quote }}
+          organizationEmail: {{ .Values.organization.email | quote }}
+        intermediateCA:
+          - organizationName: {{ .Values.organization.name | quote }}
+            organizationEmail: {{ .Values.organization.email | quote }}
+        leafCA:
+          organizationName: {{ .Values.organization.name | quote }}
+          organizationEmail: {{ .Values.organization.email | quote }}
 

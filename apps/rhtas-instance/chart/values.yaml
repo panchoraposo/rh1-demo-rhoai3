@@ -11,3 +11,7 @@ externalAccess:
   tuf: true
   tsa: true
 
+organization:
+  name: "Red Hat"
+  email: "rhtap-demo@redhat.com"
+
