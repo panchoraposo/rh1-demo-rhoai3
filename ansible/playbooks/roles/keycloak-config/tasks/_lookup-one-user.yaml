@@ -7,14 +7,40 @@
       Content-Type: "application/json"
     return_content: true
     validate_certs: false
-    status_code: [200]
+    status_code: [200, 401]
+  register: user_lookup_try
+  failed_when: false
+  retries: 3
+  delay: 2
+  until: user_lookup_try.status in [200, 401]
+
+- name: Refresh admin token if unauthorized ({{ kc_user.username }})
+  when: user_lookup_try.status == 401
+  ansible.builtin.include_tasks: _refresh-admin-token.yaml
+
+- name: "Reintentar lookup de usuario ({{ kc_user.username }})"
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users?username={{ kc_user.username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    return_content: true
+    validate_certs: false
+    status_code: [200, 401]
   register: user_lookup
+  failed_when: false
   retries: 10
   delay: 6
   until:
     - user_lookup.status == 200
     - (user_lookup.json | default([])) | length > 0
     - (user_lookup.json[0].id | default('')) | length > 0
+
+- name: Fail if still unauthorized looking up user ({{ kc_user.username }})
+  ansible.builtin.fail:
+    msg: "{{ user_lookup.msg | default('No se pudo obtener el usuario (401)') }}"
+  when: user_lookup.status != 200
 
 - name: "Guardar ID de usuario ({{ kc_user.username }})"
   ansible.builtin.set_fact:
