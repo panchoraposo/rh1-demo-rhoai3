@@ -26,15 +26,8 @@ data:
       ## --- RBAC_PLUGIN ---
       - package: ./dynamic-plugins/dist/backstage-community-plugin-rbac
         disabled: false
-      # OCI overlays: use {{inherit}} to match installed RHDH/Backstage version
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-scaffolder-backend-module-utils:{{inherit}}!roadiehq-scaffolder-backend-module-utils
-        disabled: false
       ## --- GITLAB_PLUGIN ---
       - package: ./dynamic-plugins/dist/backstage-plugin-scaffolder-backend-module-gitlab-dynamic
-        disabled: false
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/immobiliarelabs-backstage-plugin-gitlab-backend:{{inherit}}!immobiliarelabs-backstage-plugin-gitlab-backend
-        disabled: false
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/immobiliarelabs-backstage-plugin-gitlab:{{inherit}}!immobiliarelabs-backstage-plugin-gitlab
         disabled: false
       ## --- TECHDOCS_PLUGIN ---
       - package: ./dynamic-plugins/dist/backstage-plugin-techdocs-backend-dynamic
@@ -54,13 +47,6 @@ data:
       # Si dejamos también el backend de RoadieHQ, Backstage falla con "Plugin 'argocd' is already registered".
       - package: ./dynamic-plugins/dist/roadiehq-backstage-plugin-argo-cd-backend-dynamic
         disabled: true
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-backstage-plugin-argo-cd:{{inherit}}!roadiehq-backstage-plugin-argo-cd
-        disabled: true
-      # Usar el plugin Argo CD (Red Hat community) en vez de RoadieHQ
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-redhat-argocd:{{inherit}}!backstage-community-plugin-redhat-argocd
-        disabled: false
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-redhat-argocd-backend:{{inherit}}!backstage-community-plugin-redhat-argocd-backend
-        disabled: false
       ## --- QUAY_PLUGIN ---
       # En RHDH 1.9, este módulo suele venir ya incluido por el catálogo por defecto;
       # si lo volvemos a agregar desde ./dist se duplica y rompe readiness con:
@@ -68,26 +54,5 @@ data:
       - package: ./dynamic-plugins/dist/backstage-community-plugin-scaffolder-backend-module-quay-dynamic
         disabled: true
       - package: ./dynamic-plugins/dist/backstage-community-plugin-quay
-        disabled: false
-      ## --- MCP_SERVER_BACKEND_PLUGIN ---
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-plugin-mcp-actions-backend:{{inherit}}!backstage-plugin-mcp-actions-backend
-        disabled: false
-      ## --- MCP_TOOLS_PLUGINS ---
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/red-hat-developer-hub-backstage-plugin-software-catalog-mcp-tool:{{inherit}}!red-hat-developer-hub-backstage-plugin-software-catalog-mcp-tool
-        disabled: false
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/red-hat-developer-hub-backstage-plugin-techdocs-mcp-tool:{{inherit}}!red-hat-developer-hub-backstage-plugin-techdocs-mcp-tool
-        disabled: false
-
-      ## --- JENKINS_PLUGINS ---
-      # Backend + UI para ver estado del pipeline en el portal
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-jenkins-backend:{{inherit}}!backstage-community-plugin-jenkins-backend
-        disabled: false
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-jenkins:{{inherit}}!backstage-community-plugin-jenkins
-        disabled: false
-      # Acciones Scaffolder: jenkins:job:create / jenkins:job:build
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-scaffolder-backend-module-jenkins:{{inherit}}!backstage-community-plugin-scaffolder-backend-module-jenkins
-        disabled: false
-      # Acciones Scaffolder: http:request (útil para futuras integraciones)
-      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-scaffolder-backend-module-http-request:{{inherit}}!roadiehq-scaffolder-backend-module-http-request
         disabled: false
 
