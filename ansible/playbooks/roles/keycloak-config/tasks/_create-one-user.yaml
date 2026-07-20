@@ -26,14 +26,14 @@
   failed_when: false
   retries: 3
   delay: 2
-  until: create_user_attempt.status in [201, 409, 401]
+  until: (create_user_attempt.status | default(-1)) in [201, 409, 401]
 
 - name: Refresh admin token if unauthorized creating user ({{ kc_user.username }})
-  when: create_user_attempt.status == 401
+  when: (create_user_attempt.status | default(-1)) == 401
   ansible.builtin.include_tasks: _refresh-admin-token.yaml
 
 - name: "Reintentar creación de usuario ({{ kc_user.username }})"
-  when: create_user_attempt.status == 401
+  when: (create_user_attempt.status | default(-1)) == 401
   ansible.builtin.uri:
     url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users"
     method: POST
@@ -66,7 +66,7 @@
 - name: Fail if unable to create user ({{ kc_user.username }})
   ansible.builtin.fail:
     msg: "{{ (create_user_retry.msg if (create_user_retry is defined) else create_user_attempt.msg) | default('No se pudo crear el usuario') }}"
-  when: >
-    (create_user_attempt.status not in [201, 409]) and
-    ((create_user_retry is not defined) or (create_user_retry.status not in [201, 409]))
+  when:
+    - (create_user_attempt.status | default(-1)) not in [201, 409]
+    - (create_user_retry.status | default(-1)) not in [201, 409]
 
