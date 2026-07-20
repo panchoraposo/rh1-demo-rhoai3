@@ -11,6 +11,7 @@ spec:
     externalAccess:
       enabled: {{ .Values.externalAccess.fulcio }}
       host: {{ printf "fulcio.%s" .Values.openshift_base_domain | quote }}
+    certificate: {}
     config:
       OIDCIssuers:
         - ClientID: {{ .Values.client_id | quote }}
@@ -29,4 +30,6 @@ spec:
     externalAccess:
       enabled: {{ .Values.externalAccess.tsa }}
       host: {{ printf "tsa.%s" .Values.openshift_base_domain | quote }}
+    signer:
+      certificateChain: {}
 
