@@ -1,0 +1,25 @@
+- name: Install Tekton Chains configuration (TektonConfig)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: tekton-chains-config
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/tekton-chains-config/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: openshift-pipelines
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+

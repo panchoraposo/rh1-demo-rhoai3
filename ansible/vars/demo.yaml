@@ -91,8 +91,8 @@ gitlab_oauth_client_secret: "{{ gitlab_oauth.json.secret }}"
 # --- General ---
 validate_ssl_certs: false
 #
-# RHDH 1.9.x (Backstage 1.45.3)
-backstage_image: registry.redhat.io/rhdh/rhdh-hub-rhel9:1.9.1
+# RHDH 1.10.x (Backstage 1.49.4)
+backstage_image: registry.redhat.io/rhdh/rhdh-hub-rhel9:1.10.0
 
 # --- Keycloak ---
 keycloak_hostname: sso.{{ openshift_base_domain }}

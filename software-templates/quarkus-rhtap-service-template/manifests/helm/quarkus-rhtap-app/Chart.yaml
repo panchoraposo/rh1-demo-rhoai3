@@ -1,0 +1,7 @@
+apiVersion: v2
+name: quarkus-rhtap-app
+description: Quarkus app deployment (GitOps-managed)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+

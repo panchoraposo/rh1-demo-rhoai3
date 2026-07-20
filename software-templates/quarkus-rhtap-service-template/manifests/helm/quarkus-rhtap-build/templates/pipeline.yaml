@@ -1,0 +1,161 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: {{ default .Chart.Name .Values.nameOverride }}-build
+spec:
+  params:
+    - name: source-repo
+      type: string
+      default: {{ .Values.git.appRepo | quote }}
+    - name: source-branch
+      type: string
+      default: {{ .Values.git.branch | quote }}
+    - name: dockerfile
+      type: string
+      default: {{ .Values.image.dockerfile | quote }}
+    - name: output-image
+      type: string
+      default: {{ ternary (printf "%s/%s/%s:%s" .Values.image.host .Values.image.organization .Values.image.name .Values.image.tag) (printf "%s/%s/%s:%s" .Values.image.host .Values.image.namespace .Values.image.name .Values.image.tag) (eq .Values.image.registry "Quay") | quote }}
+    - name: gitops-repo
+      type: string
+      default: {{ .Values.git.gitopsRepo | quote }}
+    - name: gitops-values-path
+      type: string
+      default: {{ .Values.git.gitopsValuesPath | quote }}
+    - name: ec-policy
+      type: string
+      default: {{ .Values.rhtap.policyConfiguration | quote }}
+    - name: cluster-subdomain
+      type: string
+      default: {{ .Values.cluster.subdomain | quote }}
+  workspaces:
+    - name: source-folder
+    - name: maven-settings
+    - name: dockerconfig
+
+  tasks:
+    - name: git-clone
+      params:
+        - name: URL
+          value: $(params.source-repo)
+        - name: REVISION
+          value: $(params.source-branch)
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      workspaces:
+        - name: output
+          workspace: source-folder
+
+    - name: build-source
+      runAfter: [git-clone]
+      params:
+        - name: GOALS
+          value: ["package"]
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: maven
+          - name: namespace
+            value: openshift-pipelines
+      workspaces:
+        - name: source
+          workspace: source-folder
+        - name: maven_settings
+          workspace: maven-settings
+
+    - name: build-and-push-image
+      runAfter: [build-source]
+      params:
+        - name: DOCKERFILE
+          value: $(params.dockerfile)
+        - name: IMAGE
+          value: $(params.output-image)
+        - name: TLSVERIFY
+          value: "false"
+      taskRef:
+        name: buildah-rhtap
+      workspaces:
+        - name: source
+          workspace: source-folder
+        - name: dockerconfig
+          workspace: dockerconfig
+
+    - name: generate-sbom
+      runAfter: [build-and-push-image]
+      when:
+        - input: {{ .Values.rhtap.enableSbom | quote }}
+          operator: in
+          values: ["true"]
+      params:
+        - name: IMAGE_URL
+          value: $(tasks.build-and-push-image.results.IMAGE_URL)
+        - name: IMAGE_DIGEST
+          value: $(tasks.build-and-push-image.results.IMAGE_DIGEST)
+      taskRef:
+        name: generate-sbom
+      workspaces:
+        - name: source
+          workspace: source-folder
+
+    - name: attest-sbom
+      runAfter: [generate-sbom]
+      when:
+        - input: {{ .Values.rhtap.enableCosignAttest | quote }}
+          operator: in
+          values: ["true"]
+      params:
+        - name: IMAGE_URL
+          value: $(tasks.build-and-push-image.results.IMAGE_URL)
+        - name: IMAGE_DIGEST
+          value: $(tasks.build-and-push-image.results.IMAGE_DIGEST)
+        - name: SBOM_PATH
+          value: $(tasks.generate-sbom.results.SBOM_PATH)
+        - name: CLUSTER_SUBDOMAIN
+          value: $(params.cluster-subdomain)
+      taskRef:
+        name: cosign-keyless-sign-attest
+      workspaces:
+        - name: source
+          workspace: source-folder
+
+    - name: verify-enterprise-contract
+      runAfter: [attest-sbom]
+      when:
+        - input: {{ .Values.rhtap.enableEnterpriseContract | quote }}
+          operator: in
+          values: ["true"]
+      params:
+        - name: IMAGES
+          value: >-
+            {"components":[{"containerImage":"$(tasks.build-and-push-image.results.IMAGE_URL)@$(tasks.build-and-push-image.results.IMAGE_DIGEST)"}]}
+        - name: POLICY_CONFIGURATION
+          value: $(params.ec-policy)
+      taskRef:
+        name: verify-enterprise-contract
+
+    - name: update-gitops
+      runAfter:
+        - verify-enterprise-contract
+      params:
+        - name: GITOPS_REPO
+          value: $(params.gitops-repo)
+        - name: VALUES_PATH
+          value: $(params.gitops-values-path)
+        - name: IMAGE_DIGEST
+          value: $(tasks.build-and-push-image.results.IMAGE_DIGEST)
+      taskRef:
+        name: update-gitops-values
+      workspaces:
+        - name: source
+          workspace: source-folder
+

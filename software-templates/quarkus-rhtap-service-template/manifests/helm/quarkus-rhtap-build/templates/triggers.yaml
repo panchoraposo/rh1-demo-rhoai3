@@ -1,0 +1,78 @@
+apiVersion: tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: {{ default .Chart.Name .Values.nameOverride }}-gitlab-push
+spec:
+  params:
+    - name: gitrevision
+      value: $(body.after)
+    - name: gitrepositoryurl
+      value: $(body.repository.git_http_url)
+---
+apiVersion: tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: {{ default .Chart.Name .Values.nameOverride }}-trigger
+spec:
+  params:
+    - name: gitrevision
+      description: The git revision
+      default: main
+    - name: gitrepositoryurl
+      description: The git repository url
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: {{ default .Chart.Name .Values.nameOverride }}-run-
+      spec:
+        pipelineRef:
+          name: {{ default .Chart.Name .Values.nameOverride }}-build
+        params:
+          - name: source-repo
+            value: $(tt.params.gitrepositoryurl)
+          - name: source-branch
+            value: main
+        workspaces:
+          - name: source-folder
+            volumeClaimTemplate:
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: maven-settings
+            emptyDir: {}
+          - name: dockerconfig
+            secret:
+              secretName: quay-dockerconfig
+---
+apiVersion: tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: {{ default .Chart.Name .Values.nameOverride }}-el
+spec:
+  triggers:
+    - name: gitlab-push
+      interceptors:
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.object_kind == 'push'"
+      bindings:
+        - ref: {{ default .Chart.Name .Values.nameOverride }}-gitlab-push
+      template:
+        ref: {{ default .Chart.Name .Values.nameOverride }}-trigger
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ default .Chart.Name .Values.nameOverride }}-el
+spec:
+  to:
+    kind: Service
+    name: el-{{ default .Chart.Name .Values.nameOverride }}-el
+  port:
+    targetPort: http-listener
+

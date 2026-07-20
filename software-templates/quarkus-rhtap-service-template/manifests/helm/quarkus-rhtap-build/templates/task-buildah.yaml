@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildah-rhtap
+spec:
+  params:
+    - name: IMAGE
+      type: string
+    - name: DOCKERFILE
+      type: string
+      default: ./Dockerfile
+    - name: CONTEXT
+      type: string
+      default: .
+    - name: TLSVERIFY
+      type: string
+      default: "true"
+    - name: BUILDER_IMAGE
+      type: string
+      default: quay.io/buildah/stable:v1
+  results:
+    - name: IMAGE_DIGEST
+      type: string
+    - name: IMAGE_URL
+      type: string
+  workspaces:
+    - name: source
+    - name: dockerconfig
+      optional: true
+  steps:
+    - name: build-and-push
+      image: $(params.BUILDER_IMAGE)
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: DOCKER_CONFIG
+          value: $(workspaces.dockerconfig.path)
+      securityContext:
+        capabilities:
+          add: ["SETFCAP"]
+      script: |
+        set -euo pipefail
+        if [ "$(workspaces.dockerconfig.bound)" = "true" ]; then
+          export DOCKER_CONFIG="$(workspaces.dockerconfig.path)"
+        fi
+        buildah bud --tls-verify="$(params.TLSVERIFY)" -f "$(params.DOCKERFILE)" -t "$(params.IMAGE)" "$(params.CONTEXT)"
+        buildah push --tls-verify="$(params.TLSVERIFY)" --digestfile /tmp/image-digest "$(params.IMAGE)" "docker://$(params.IMAGE)"
+        tee "$(results.IMAGE_DIGEST.path)" < /tmp/image-digest
+        printf '%s' "$(params.IMAGE)" | tee "$(results.IMAGE_URL.path)"
+

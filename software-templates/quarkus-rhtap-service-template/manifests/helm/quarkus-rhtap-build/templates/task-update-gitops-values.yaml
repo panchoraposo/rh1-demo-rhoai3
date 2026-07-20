@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-gitops-values
+spec:
+  params:
+    - name: GITOPS_REPO
+      type: string
+    - name: VALUES_PATH
+      type: string
+    - name: IMAGE_DIGEST
+      type: string
+    - name: GIT_IMAGE
+      type: string
+      default: alpine/git:2.47.1
+    - name: YQ_IMAGE
+      type: string
+      default: mikefarah/yq:4.44.3
+  workspaces:
+    - name: source
+  steps:
+    - name: clone
+      image: $(params.GIT_IMAGE)
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: git-token
+              key: token
+      script: |
+        set -euo pipefail
+        rm -rf gitops
+        mkdir -p gitops
+        REPO="$(params.GITOPS_REPO)"
+        # Expect https://host/group/repo.git
+        AUTH_REPO="$(echo "$REPO" | sed -e "s#https://#https://oauth2:${GIT_TOKEN}@#")"
+        git clone "$AUTH_REPO" gitops
+        cd gitops
+        git checkout -B main origin/main || true
+    - name: set-digest
+      image: $(params.YQ_IMAGE)
+      workingDir: $(workspaces.source.path)/gitops
+      script: |
+        set -euo pipefail
+        FILE="$(params.VALUES_PATH)"
+        yq -i '.image.digest = "$(params.IMAGE_DIGEST)"' "$FILE"
+    - name: commit-push
+      image: $(params.GIT_IMAGE)
+      workingDir: $(workspaces.source.path)/gitops
+      env:
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: git-token
+              key: token
+      script: |
+        set -euo pipefail
+        git config user.email "rhdh@example.com"
+        git config user.name "Red Hat Developer Hub"
+        git add "$(params.VALUES_PATH)"
+        git commit -m "Promote image digest" || exit 0
+        git push origin HEAD:main
+

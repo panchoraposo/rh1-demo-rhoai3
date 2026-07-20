@@ -1,0 +1,32 @@
+apiVersion: rhtas.redhat.com/v1alpha1
+kind: Securesign
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.name }}
+    app.kubernetes.io/part-of: trusted-artifact-signer
+spec:
+  fulcio:
+    externalAccess:
+      enabled: {{ .Values.externalAccess.fulcio }}
+      host: {{ printf "fulcio.%s" .Values.openshift_base_domain | quote }}
+    config:
+      OIDCIssuers:
+        - ClientID: {{ .Values.client_id | quote }}
+          IssuerURL: {{ printf "https://sso.%s/realms/%s" .Values.openshift_base_domain .Values.keycloak_realm | quote }}
+          Issuer: {{ printf "https://sso.%s/realms/%s" .Values.openshift_base_domain .Values.keycloak_realm | quote }}
+          Type: "email"
+  rekor:
+    externalAccess:
+      enabled: {{ .Values.externalAccess.rekor }}
+      host: {{ printf "rekor.%s" .Values.openshift_base_domain | quote }}
+  tuf:
+    externalAccess:
+      enabled: {{ .Values.externalAccess.tuf }}
+      host: {{ printf "tuf.%s" .Values.openshift_base_domain | quote }}
+  tsa:
+    externalAccess:
+      enabled: {{ .Values.externalAccess.tsa }}
+      host: {{ printf "tsa.%s" .Values.openshift_base_domain | quote }}
+

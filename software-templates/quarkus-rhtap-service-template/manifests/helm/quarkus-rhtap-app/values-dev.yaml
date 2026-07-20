@@ -1,0 +1,19 @@
+nameOverride: ${{ values.component_id }}
+
+service:
+  port: ${{ values.port }}
+
+imagePullSecrets:
+  enabled: true
+  name: ${{ values.component_id }}-registry-creds-app
+
+image:
+  registry: ${{ values.image_registry }}
+  host: ${{ values.image_host }}
+  organization: ${{ values.image_organization }}
+  name: ${{ values.image_name }}
+  namespace: ${{ values.namespace }}
+  tag: ${{ values.image_tag }}
+  digest: ""
+  password: ${{ values.image_password }}
+

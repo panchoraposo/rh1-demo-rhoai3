@@ -1,0 +1,62 @@
+- name: Install Red Hat Trusted Artifact Signer operator (RHTAS)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: rhtas-operator
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/rhtas-operator/overlays/dev
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: openshift-operators
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+
+- name: Deploy Red Hat Trusted Artifact Signer instance (Securesign)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: rhtas-instance
+        namespace: openshift-gitops
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo }}"
+          targetRevision: "{{ gitops_target_revision }}"
+          path: apps/rhtas-instance/chart
+          helm:
+            parameters:
+              - name: openshift_base_domain
+                value: "{{ openshift_base_domain }}"
+              - name: keycloak_realm
+                value: "{{ keycloak_realm }}"
+              - name: client_id
+                value: "trusted-artifact-signer"
+              - name: namespace
+                value: "trusted-artifact-signer"
+              - name: name
+                value: "rhtas"
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: trusted-artifact-signer
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+

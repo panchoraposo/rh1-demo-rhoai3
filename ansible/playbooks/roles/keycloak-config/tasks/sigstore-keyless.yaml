@@ -1,0 +1,127 @@
+- name: Set default Vault root token (demo)
+  ansible.builtin.set_fact:
+    vault_root_token: "root"
+
+- name: Ensure Keyless signing client exists (trusted-artifact-signer)
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/clients"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      clientId: "trusted-artifact-signer"
+      name: "trusted-artifact-signer"
+      enabled: true
+      publicClient: false
+      directAccessGrantsEnabled: true
+      standardFlowEnabled: false
+      implicitFlowEnabled: false
+      serviceAccountsEnabled: false
+      protocol: openid-connect
+    status_code: [201, 409]
+    validate_certs: false
+
+- name: Lookup Keycloak client id for trusted-artifact-signer
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/clients?clientId=trusted-artifact-signer"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    validate_certs: false
+  register: sigstore_client_info
+
+- name: Validate trusted-artifact-signer client exists
+  ansible.builtin.fail:
+    msg: "No se encontró el cliente trusted-artifact-signer en Keycloak"
+  when: sigstore_client_info.json | length == 0
+
+- name: Set sigstore-cli internal client uuid
+  ansible.builtin.set_fact:
+    sigstore_client_uuid: "{{ sigstore_client_info.json[0].id }}"
+
+- name: Regenerate trusted-artifact-signer client secret
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/clients/{{ sigstore_client_uuid }}/client-secret"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    status_code: 200
+    return_content: true
+    validate_certs: false
+  register: sigstore_client_secret_response
+
+- name: Store sigstore-cli client secret
+  ansible.builtin.set_fact:
+    sigstore_client_secret: "{{ sigstore_client_secret_response.json.value }}"
+  no_log: true
+
+- name: Ensure Keyless signing user exists
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      username: "sigstore-signer"
+      enabled: true
+      emailVerified: true
+      firstName: "Sigstore"
+      lastName: "Signer"
+      email: "sigstore-signer@rhdh.com"
+    status_code: [201, 409]
+    validate_certs: false
+
+- name: Lookup Keyless signing user id
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users?username=sigstore-signer"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+    validate_certs: false
+  register: sigstore_user_info
+
+- name: Validate sigstore-signer user exists
+  ansible.builtin.fail:
+    msg: "No se encontró el usuario sigstore-signer en Keycloak"
+  when: sigstore_user_info.json | length == 0
+
+- name: Generate password for sigstore-signer
+  ansible.builtin.set_fact:
+    sigstore_user_password: "{{ lookup('password', '/dev/null length=28 chars=ascii_letters,digits') }}"
+  no_log: true
+
+- name: Set password for sigstore-signer
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users/{{ sigstore_user_info.json[0].id }}/reset-password"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      type: "password"
+      temporary: false
+      value: "{{ sigstore_user_password }}"
+    status_code: 204
+    validate_certs: false
+  no_log: true
+
+- name: Store keyless signing creds in Vault for External Secrets
+  kubernetes.core.k8s_exec:
+    namespace: "{{ vault_namespace }}"
+    pod: vault-0
+    command: >
+      /bin/sh -c 'vault kv put secret/secrets/rhdh/sigstore_keyless
+      client_id="trusted-artifact-signer"
+      client_secret="{{ sigstore_client_secret }}"
+      username="sigstore-signer"
+      password="{{ sigstore_user_password }}"'
+  environment:
+    VAULT_TOKEN: "{{ vault_root_token }}"
+    VAULT_ADDR: "http://127.0.0.1:8200"
+  no_log: true
+

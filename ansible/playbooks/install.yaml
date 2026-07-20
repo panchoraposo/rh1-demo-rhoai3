@@ -5,6 +5,9 @@
 
   vars:
     kube_context: "{{ lookup('env','K8S_AUTH_CONTEXT') | default('previred', true) }}"
+    enable_ai_stack: "{{ lookup('env','ENABLE_AI_STACK') | default(false, true) }}"
+    enable_jenkins: "{{ lookup('env','ENABLE_JENKINS') | default(true, true) }}"
+    enable_service_mesh: "{{ lookup('env','ENABLE_SERVICE_MESH') | default(true, true) }}"
 
   module_defaults:
     kubernetes.core.k8s:
@@ -23,10 +26,16 @@
   roles:
     - role: openshift-config
     - role: gitops-config
+    - role: gitops-deploy-pipelines
+    - role: gitops-deploy-tekton-chains
     - role: gitops-deploy-jenkins
+      when: enable_jenkins | bool
     - role: gitops-devspaces
     - role: gitops-deploy-vault-operator
+    - role: gitops-deploy-keycloak
     - role: keycloak-config
+    - role: gitops-deploy-rhtas
+    - role: gitops-deploy-enterprise-contract
     - role: gitops-deploy-gitlab
     - role: gitops-deploy-odf
     - role: gitops-deploy-quay
@@ -35,7 +44,11 @@
     - role: gitops-observability
     - role: gitops-logging
     - role: gitops-deploy-neuralbank
+      when: enable_service_mesh | bool
     - role: gitops-deploy-kiali
+      when: enable_service_mesh | bool
     - role: gitops-deploy-kubernetes-mcp
+      when: enable_ai_stack | bool
     - role: gitops-deploy-openshift-lightspeed
+      when: enable_ai_stack | bool
     - role: dashboard

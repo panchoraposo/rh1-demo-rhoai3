@@ -1,0 +1,21 @@
+openshift_base_domain: example.com
+keycloak_realm: backstage
+
+namespace: enterprise-contract-service
+policyName: default
+
+identity:
+  issuer: "" # computed from openshift_base_domain + keycloak_realm when empty
+  subjectRegExp: ".*@rhdh\\.com"
+
+rekorUrl: "" # computed as https://rekor.<openshift_base_domain> when empty
+
+sources:
+  policy:
+    - oci::quay.io/enterprise-contract/ec-release-policy:latest
+  data:
+    - oci::quay.io/konflux-ci/tekton-catalog/data-acceptable-bundles:latest
+    - github.com/release-engineering/rhtap-ec-policy//data
+  include:
+    - "@minimal"
+

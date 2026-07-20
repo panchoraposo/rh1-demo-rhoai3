@@ -1,0 +1,95 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: enterprisecontractpolicies.appstudio.redhat.com
+spec:
+  group: appstudio.redhat.com
+  names:
+    kind: EnterpriseContractPolicy
+    listKind: EnterpriseContractPolicyList
+    plural: enterprisecontractpolicies
+    singular: enterprisecontractpolicy
+    shortNames:
+      - ecp
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: EnterpriseContractPolicy is the Schema for the enterprisecontractpolicies API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              description: EnterpriseContractPolicySpec is used to configure the Enterprise Contract Policy
+              properties:
+                description:
+                  type: string
+                publicKey:
+                  type: string
+                rekorUrl:
+                  type: string
+                identity:
+                  type: object
+                  properties:
+                    issuer:
+                      type: string
+                    issuerRegExp:
+                      type: string
+                    subject:
+                      type: string
+                    subjectRegExp:
+                      type: string
+                sources:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      policy:
+                        type: array
+                        minItems: 1
+                        items:
+                          type: string
+                      data:
+                        type: array
+                        items:
+                          type: string
+                      config:
+                        type: object
+                        properties:
+                          include:
+                            type: array
+                            items:
+                              type: string
+                          exclude:
+                            type: array
+                            items:
+                              type: string
+                      ruleData:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                configuration:
+                  type: object
+                  properties:
+                    include:
+                      type: array
+                      items:
+                        type: string
+                    exclude:
+                      type: array
+                      items:
+                        type: string
+      subresources:
+        status: {}
+

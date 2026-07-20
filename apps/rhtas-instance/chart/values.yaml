@@ -1,0 +1,13 @@
+openshift_base_domain: example.com
+keycloak_realm: backstage
+client_id: trusted-artifact-signer
+
+namespace: trusted-artifact-signer
+name: rhtas
+
+externalAccess:
+  fulcio: true
+  rekor: true
+  tuf: true
+  tsa: true
+

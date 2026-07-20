@@ -1,0 +1,29 @@
+nameOverride: ""
+owner: developers
+
+git:
+  host: ""
+  appRepo: ""
+  gitopsRepo: ""
+  branch: main
+  gitopsValuesPath: helm/quarkus-rhtap-app/values-dev.yaml
+
+image:
+  dockerfile: ./src/main/docker/Dockerfile.jvm
+  registry: ""
+  organization: ""
+  host: ""
+  name: ""
+  namespace: ""
+  tag: latest
+  password: ""
+
+cluster:
+  subdomain: ""
+
+rhtap:
+  enableSbom: true
+  enableCosignAttest: true
+  enableEnterpriseContract: true
+  policyConfiguration: enterprise-contract-service/default
+

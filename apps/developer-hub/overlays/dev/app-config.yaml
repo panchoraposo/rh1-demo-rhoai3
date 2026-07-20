@@ -164,6 +164,9 @@ catalog:
     # Quarkus MCP Template
     - type: url
       target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/quarkus-mcp-template/template.yaml
+    # Quarkus RHTAP Service Template
+    - type: url
+      target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/software-templates/quarkus-rhtap-service-template/template.yaml
     # Docs: MCP con Cursor (TechDocs)
     - type: url
       target: https://gitlab-gitlab.apps.ocp.mm727.sandbox944.opentlc.com/platform-engineers/developer-hub/-/blob/rhdh-1.9-baseline/docs/mcp-cursor/catalog-info.yaml
@@ -351,7 +354,7 @@ initContainers:
       runAsNonRoot: true
       seccompProfile:
         type: "RuntimeDefault"
-    image: 'registry.redhat.io/rhdh/rhdh-hub-rhel9:1.9.1'
+    image: 'registry.redhat.io/rhdh/rhdh-hub-rhel9:1.10.0'
     command:
       - /bin/sh
       - -lc

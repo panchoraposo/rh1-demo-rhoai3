@@ -1,0 +1,7 @@
+apiVersion: v2
+name: quarkus-rhtap-build
+description: Tekton CI pipeline + triggers for Quarkus RHTAP demo
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+

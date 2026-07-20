@@ -21,3 +21,6 @@
 
 - name: Crear secret en OpenShift con client secret
   include_tasks: secret-ocp.yaml
+
+- name: Configurar credenciales para firma keyless (RHTAS)
+  include_tasks: sigstore-keyless.yaml

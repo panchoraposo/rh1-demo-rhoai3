@@ -1,0 +1,22 @@
+- name: "Obtener ID de usuario ({{ kc_user.username }})"
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users?username={{ kc_user.username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    return_content: true
+    validate_certs: false
+    status_code: [200]
+  register: user_lookup
+  retries: 10
+  delay: 6
+  until:
+    - user_lookup.status == 200
+    - (user_lookup.json | default([])) | length > 0
+    - (user_lookup.json[0].id | default('')) | length > 0
+
+- name: "Guardar ID de usuario ({{ kc_user.username }})"
+  ansible.builtin.set_fact:
+    kc_user_ids: "{{ (kc_user_ids | default({})) | combine({ kc_user.username: user_lookup.json[0].id }) }}"
+

@@ -1,0 +1,16 @@
+openapi: 3.0.3
+info:
+  title: ${{values.component_id}}
+  version: 1.0.0
+paths:
+  /api/greeting:
+    get:
+      summary: Greeting
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+

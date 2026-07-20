@@ -1,0 +1,28 @@
+apiVersion: rhtas.redhat.com/v1alpha1
+kind: Securesign
+metadata:
+  name: rhtas
+  namespace: trusted-artifact-signer
+  labels:
+    app.kubernetes.io/name: rhtas
+    app.kubernetes.io/part-of: trusted-artifact-signer
+spec:
+  fulcio:
+    externalAccess:
+      enabled: true
+    config:
+      OIDCIssuers:
+        - ClientID: "trusted-artifact-signer"
+          IssuerURL: "https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/backstage"
+          Issuer: "https://sso.apps.ocp.mm727.sandbox944.opentlc.com/realms/backstage"
+          Type: "email"
+  rekor:
+    externalAccess:
+      enabled: true
+  tuf:
+    externalAccess:
+      enabled: true
+  tsa:
+    externalAccess:
+      enabled: true
+

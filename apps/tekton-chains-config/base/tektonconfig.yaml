@@ -1,0 +1,14 @@
+apiVersion: operator.tekton.dev/v1alpha1
+kind: TektonConfig
+metadata:
+  name: config
+spec:
+  chain:
+    disabled: false
+    artifacts.taskrun.format: in-toto
+    artifacts.taskrun.storage: oci
+    artifacts.oci.storage: oci
+    artifacts.oci.format: simplesigning
+    artifacts.oci.signer: x509
+    transparency.enabled: "false"
+

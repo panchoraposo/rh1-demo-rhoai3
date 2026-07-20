@@ -1,0 +1,19 @@
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: EnterpriseContractPolicy
+metadata:
+  name: default
+  namespace: enterprise-contract-service
+spec:
+  description: Default EnterpriseContractPolicy for the demo (GitOps-managed).
+  publicKey: k8s://openshift-pipelines/public-key
+  sources:
+    - name: DefaultPolicies
+      policy:
+        - oci::quay.io/enterprise-contract/ec-release-policy:latest
+      data:
+        - oci::quay.io/konflux-ci/tekton-catalog/data-acceptable-bundles:latest
+        - github.com/release-engineering/rhtap-ec-policy//data
+      config:
+        include:
+          - "@minimal"
+

@@ -1,0 +1,27 @@
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: EnterpriseContractPolicy
+metadata:
+  name: {{ .Values.policyName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  description: Default EnterpriseContractPolicy for the demo (GitOps-managed, keyless).
+  identity:
+    issuer: {{ default (printf "https://sso.%s/realms/%s" .Values.openshift_base_domain .Values.keycloak_realm) .Values.identity.issuer | quote }}
+    subjectRegExp: {{ .Values.identity.subjectRegExp | quote }}
+  rekorUrl: {{ default (printf "https://rekor.%s" .Values.openshift_base_domain) .Values.rekorUrl | quote }}
+  sources:
+    - name: DefaultPolicies
+      policy:
+        {{- range .Values.sources.policy }}
+        - {{ . | quote }}
+        {{- end }}
+      data:
+        {{- range .Values.sources.data }}
+        - {{ . | quote }}
+        {{- end }}
+      config:
+        include:
+          {{- range .Values.sources.include }}
+          - {{ . | quote }}
+          {{- end }}
+

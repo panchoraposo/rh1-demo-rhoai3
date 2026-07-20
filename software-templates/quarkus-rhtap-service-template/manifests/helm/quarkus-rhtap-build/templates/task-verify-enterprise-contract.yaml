@@ -1,0 +1,120 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: verify-enterprise-contract
+  annotations:
+    tekton.dev/displayName: Verify Conforma
+    tekton.dev/pipelines.minVersion: "0.19"
+    tekton.dev/tags: ec, chains, signature, conftest
+  labels:
+    app.kubernetes.io/version: "0.1"
+spec:
+  description: Verify the Conforma policy is met
+  params:
+    - name: IMAGES
+      type: string
+      description: |
+        Spec section of an ApplicationSnapshot resource. Not all fields of the
+        resource are required. A minimal example:
+
+                ```json
+                  {
+                    "components": [
+                      {
+                        "containerImage": "quay.io/example/repo:latest"
+                      }
+                    ]
+                  }
+                ```
+
+        Each `containerImage` in the `components` array is validated.
+    - name: POLICY_CONFIGURATION
+      type: string
+      description: |
+        Name of the policy configuration (EnterpriseContractPolicy
+        resource) to use. `namespace/name` or `name` syntax supported. If
+        namespace is omitted the namespace where the task runs is used.
+        You can also specify a policy configuration using a git url, e.g.
+        `github.com/conforma/config//slsa3`.
+      default: "enterprise-contract-service/default"
+    - name: PUBLIC_KEY
+      type: string
+      default: ""
+    - name: REKOR_HOST
+      type: string
+      default: ""
+    - name: CERTIFICATE_IDENTITY
+      type: string
+      default: ""
+    - name: CERTIFICATE_OIDC_ISSUER
+      type: string
+      default: ""
+    - name: CERTIFICATE_IDENTITY_REGEXP
+      type: string
+      default: ""
+    - name: CERTIFICATE_OIDC_ISSUER_REGEXP
+      type: string
+      default: ""
+    - name: IGNORE_REKOR
+      type: string
+      default: "false"
+    - name: TUF_MIRROR
+      type: string
+      default: ""
+    - name: SSL_CERT_DIR
+      type: string
+      default: ""
+    - name: INFO
+      type: string
+      default: "true"
+    - name: STRICT
+      type: string
+      default: "true"
+    - name: HOMEDIR
+      type: string
+      default: /tekton/home
+  results:
+    - name: TEST_OUTPUT
+      description: Short summary of the policy evaluation for each image
+  stepTemplate:
+    env:
+      - name: HOME
+        value: "$(params.HOMEDIR)"
+  steps:
+    - name: validate
+      image: quay.io/conforma/cli:latest
+      env:
+        - name: POLICY_CONFIGURATION
+          value: "$(params.POLICY_CONFIGURATION)"
+        - name: PUBLIC_KEY
+          value: "$(params.PUBLIC_KEY)"
+        - name: CERTIFICATE_IDENTITY
+          value: "$(params.CERTIFICATE_IDENTITY)"
+        - name: CERTIFICATE_OIDC_ISSUER
+          value: "$(params.CERTIFICATE_OIDC_ISSUER)"
+        - name: CERTIFICATE_IDENTITY_REGEXP
+          value: "$(params.CERTIFICATE_IDENTITY_REGEXP)"
+        - name: CERTIFICATE_OIDC_ISSUER_REGEXP
+          value: "$(params.CERTIFICATE_OIDC_ISSUER_REGEXP)"
+        - name: REKOR_HOST
+          value: "$(params.REKOR_HOST)"
+        - name: IGNORE_REKOR
+          value: "$(params.IGNORE_REKOR)"
+        - name: INFO
+          value: "$(params.INFO)"
+        - name: STRICT
+          value: "$(params.STRICT)"
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+        cat > "$(params.HOMEDIR)/snapshot.json" <<'EOF'
+        $(params.IMAGES)
+        EOF
+        ec validate image --images="$(params.HOMEDIR)/snapshot.json" --policy="$(params.POLICY_CONFIGURATION)" --strict=false --output="appstudio=$(results.TEST_OUTPUT.path)"
+    - name: assert
+      image: quay.io/conforma/cli:latest
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+        jq -e '.result == "SUCCESS" or .result == "WARNING"' "$(results.TEST_OUTPUT.path)"
+

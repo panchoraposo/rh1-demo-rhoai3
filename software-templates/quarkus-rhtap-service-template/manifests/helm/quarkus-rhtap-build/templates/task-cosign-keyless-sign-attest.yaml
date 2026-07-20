@@ -1,0 +1,84 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: cosign-keyless-sign-attest
+spec:
+  params:
+    - name: IMAGE_URL
+      type: string
+    - name: IMAGE_DIGEST
+      type: string
+    - name: SBOM_PATH
+      type: string
+    - name: CLUSTER_SUBDOMAIN
+      type: string
+    - name: KEYCLOAK_REALM
+      type: string
+      default: backstage
+    - name: COSIGN_IMAGE
+      type: string
+      default: ghcr.io/sigstore/cosign/cosign:v2.4.0
+    - name: CURL_IMAGE
+      type: string
+      default: curlimages/curl:8.10.1
+  workspaces:
+    - name: source
+  steps:
+    - name: get-oidc-token
+      image: $(params.CURL_IMAGE)
+      env:
+        - name: CLIENT_ID
+          valueFrom:
+            secretKeyRef: { name: sigstore-keyless, key: client_id }
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef: { name: sigstore-keyless, key: client_secret }
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef: { name: sigstore-keyless, key: username }
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef: { name: sigstore-keyless, key: password }
+      script: |
+        #!/bin/sh
+        set -euo pipefail
+        TOKEN_URL="https://sso.$(params.CLUSTER_SUBDOMAIN)/realms/$(params.KEYCLOAK_REALM)/protocol/openid-connect/token"
+        # Request ID token for keyless signing (scope=openid)
+        RESP="$(curl -sk -X POST "$TOKEN_URL" \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          --data-urlencode "grant_type=password" \
+          --data-urlencode "client_id=${CLIENT_ID}" \
+          --data-urlencode "client_secret=${CLIENT_SECRET}" \
+          --data-urlencode "username=${USERNAME}" \
+          --data-urlencode "password=${PASSWORD}" \
+          --data-urlencode "scope=openid email profile")"
+        # extract id_token without jq (keep image small)
+        ID_TOKEN="$(printf '%s' "$RESP" | sed -n 's/.*"id_token":"\\([^"]*\\)".*/\\1/p')"
+        if [ -z "${ID_TOKEN}" ]; then
+          echo "Failed to obtain id_token from Keycloak. Response: $RESP" >&2
+          exit 1
+        fi
+        printf '%s' "$ID_TOKEN" > "$(workspaces.source.path)/id_token"
+
+    - name: sign-and-attest
+      image: $(params.COSIGN_IMAGE)
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: COSIGN_YES
+          value: "true"
+        - name: SIGSTORE_FULCIO_URL
+          value: "https://fulcio.$(params.CLUSTER_SUBDOMAIN)"
+        - name: SIGSTORE_REKOR_URL
+          value: "https://rekor.$(params.CLUSTER_SUBDOMAIN)"
+        - name: COSIGN_MIRROR
+          value: "https://tuf.$(params.CLUSTER_SUBDOMAIN)"
+        - name: COSIGN_ROOT
+          value: "https://tuf.$(params.CLUSTER_SUBDOMAIN)/root.json"
+      script: |
+        set -euo pipefail
+        IMG="$(params.IMAGE_URL)@$(params.IMAGE_DIGEST)"
+        ID_TOKEN="$(cat id_token)"
+        # Keyless sign + attest against RHTAS
+        cosign sign --identity-token "$ID_TOKEN" --fulcio-url "$SIGSTORE_FULCIO_URL" --rekor-url "$SIGSTORE_REKOR_URL" "$IMG"
+        cosign attest --identity-token "$ID_TOKEN" --fulcio-url "$SIGSTORE_FULCIO_URL" --rekor-url "$SIGSTORE_REKOR_URL" --predicate "$(params.SBOM_PATH)" --type cyclonedx "$IMG"
+

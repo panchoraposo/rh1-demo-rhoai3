@@ -1,0 +1,33 @@
+nameOverride: ""
+
+replicaCount: 1
+
+service:
+  port: 8080
+
+route:
+  enabled: true
+
+image:
+  registry: Quay
+  host: quay.example.com
+  organization: example
+  name: app
+  tag: latest
+  digest: "" # prefer digest when set (e.g. sha256:...)
+  namespace: "" # used for OpenShift internal registry
+  password: ""  # used to generate pull secret for Quay
+
+imagePullSecrets:
+  enabled: true
+  name: "" # default: <nameOverride>-registry-creds-app
+
+serviceAccount:
+  create: true
+  name: ""
+
+podSecurityContext: {}
+securityContext: {}
+
+resources: {}
+

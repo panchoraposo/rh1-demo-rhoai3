@@ -1,0 +1,29 @@
+- name: "Crear usuario en Keycloak ({{ kc_user.username }})"
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ kc_token }}"
+      Content-Type: "application/json"
+    body: |
+      {
+        "username": "{{ kc_user.username }}",
+        "enabled": true,
+        "email": "{{ kc_user.email }}",
+        "emailVerified": true,
+        "firstName": "{{ kc_user.first_name }}",
+        "lastName": "{{ kc_user.last_name }}",
+        "credentials": [{
+          "type": "password",
+          "value": "{{ kc_user.password }}",
+          "temporary": false
+        }]
+      }
+    body_format: json
+    status_code: [201, 409]
+    validate_certs: false
+  register: create_user_attempt
+  retries: 10
+  delay: 6
+  until: create_user_attempt.status in [201, 409]
+
