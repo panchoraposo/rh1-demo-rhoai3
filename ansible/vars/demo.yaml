@@ -5,7 +5,7 @@ desired_replicas: 3
 output_file: /tmp/gitops-subscription.yaml
 gitops_channel: latest
 gitops_repo: "https://github.com/panchoraposo/rh1-demo-rhoai3"
-gitops_target_revision: "rhdh-1.9-baseline"
+gitops_target_revision: "rhdh-1.10-neuralbank"
 gitops_repo_path: "/tmp/developer-hub"
 gitops_gitlab_repo_path: "apps/gitlab/chart"
 argocd_controller_sa: openshift-gitops-argocd-application-controller

@@ -82,11 +82,11 @@
   retries: 10
   delay: 10
 
-- name: Pinnear canal del Operator de RHDH a 1.9 (z-stream)
+- name: Pinnear canal del Operator de RHDH a 1.10 (z-stream)
   ansible.builtin.lineinfile:
     path: /tmp/developer-hub/apps/developer-hub-operator/base/subscription.yaml
     regexp: '^\\s*channel:\\s*.*$'
-    line: '  channel: fast-1.9'
+    line: '  channel: fast-1.10'
 
 - name: Asegurar que Subscription de RHDH no tenga 'channel' duplicado (workaround)
   ansible.builtin.shell: |
@@ -102,7 +102,7 @@
             if seen:
                 continue
             seen = True
-            out.append("  channel: fast-1.9")
+            out.append("  channel: fast-1.10")
         else:
             out.append(line)
     p.write_text("\n".join(out) + "\n")
@@ -149,11 +149,11 @@
   retries: 10
   delay: 10
 
-- name: Pinnear canal del Operator de RHDH a 1.9 en el repo GitLab
+- name: Pinnear canal del Operator de RHDH a 1.10 en el repo GitLab
   ansible.builtin.lineinfile:
     path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub-operator/base/subscription.yaml"
     regexp: '^\\s*channel:\\s*.*$'
-    line: '  channel: fast-1.9'
+    line: '  channel: fast-1.10'
 
 - name: Asegurar que Subscription de RHDH no tenga 'channel' duplicado en el repo GitLab (workaround)
   ansible.builtin.shell: |
@@ -169,7 +169,7 @@
             if seen:
                 continue
             seen = True
-            out.append("  channel: fast-1.9")
+            out.append("  channel: fast-1.10")
         else:
             out.append(line)
     p.write_text("\n".join(out) + "\n")
@@ -183,7 +183,7 @@
     regexp: '^\\s*installPlanApproval:\\s*.*$'
     line: '  installPlanApproval: Automatic'
 
-- name: Pinnear imagen de RHDH (operand) a 1.9.x en el CR de Backstage
+- name: Pinnear imagen de RHDH (operand) a 1.10.x en el CR de Backstage
   ansible.builtin.lineinfile:
     path: "{{ local_repo_path | default('/tmp/local_developer_hub_repo') }}/apps/developer-hub/base/developer-hub-instance.yaml"
     insertafter: '^\\s*application:\\s*$'
