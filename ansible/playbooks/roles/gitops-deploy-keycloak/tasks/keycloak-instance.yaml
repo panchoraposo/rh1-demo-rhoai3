@@ -23,7 +23,7 @@
 
 - name: Esperar que el pod de Keycloak esté en estado Ready
   shell: |
-    oc --context {{ kube_context }} wait --for=condition=Ready pod -l app.kubernetes.io/instance=keycloak -n keycloak --timeout=180s
+    oc --context {{ kube_context }} rollout status statefulset/keycloak -n keycloak --timeout=300s
   register: wait_for_pod
   retries: 6
   delay: 10
