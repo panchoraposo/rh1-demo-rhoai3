@@ -2,6 +2,44 @@
   ansible.builtin.set_fact:
     vault_root_token: "root"
 
+- name: Refresh Keycloak admin credentials (from keycloak-initial-admin)
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: keycloak-initial-admin
+    namespace: keycloak
+  register: kc_admin_secret_for_keyless
+  changed_when: false
+
+- name: Set Keycloak admin user/password (for keyless provisioning)
+  ansible.builtin.set_fact:
+    keycloak_admin_user: "{{ kc_admin_secret_for_keyless.resources[0].data.username | b64decode }}"
+    keycloak_admin_password: "{{ kc_admin_secret_for_keyless.resources[0].data.password | b64decode }}"
+  no_log: true
+
+- name: Refresh admin token (avoid expiry during long installs)
+  ansible.builtin.uri:
+    url: "https://{{ keycloak_hostname }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body:
+      username: "{{ keycloak_admin_user }}"
+      password: "{{ keycloak_admin_password }}"
+      client_id: "admin-cli"
+      grant_type: "password"
+    body_format: form-urlencoded
+    return_content: true
+    validate_certs: false
+  register: kc_token_response_keyless
+  failed_when: false
+  until: kc_token_response_keyless.status == 200
+  retries: 10
+  delay: 6
+
+- name: Store refreshed admin token
+  ansible.builtin.set_fact:
+    kc_token: "{{ kc_token_response_keyless.json.access_token }}"
+  no_log: true
+
 - name: Ensure Keyless signing client exists (trusted-artifact-signer)
   ansible.builtin.uri:
     url: "https://{{ keycloak_hostname }}/admin/realms/{{ keycloak_realm }}/clients"
