@@ -14,3 +14,35 @@ data:
       - package: ./dynamic-plugins/dist/backstage-community-plugin-rbac
         disabled: false
 
+      # Kubernetes plugin (required by Tekton UI for kubernetesApiRef).
+      - package: ./dynamic-plugins/dist/backstage-plugin-kubernetes
+        disabled: false
+      - package: ./dynamic-plugins/dist/backstage-plugin-kubernetes-backend-dynamic
+        disabled: false
+
+      # Needed for software templates to publish to GitLab (publish:gitlab).
+      - package: ./dynamic-plugins/dist/backstage-plugin-scaffolder-backend-module-gitlab-dynamic
+        disabled: false
+      # Needed for templates to create Argo CD resources (argocd:create-resources).
+      # Note: this is not present in `./dynamic-plugins/dist` for RHDH 1.10 image, so use OCI overlay.
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/roadiehq-scaffolder-backend-argocd:bs_1.49.4__1.8.1
+        disabled: false
+
+      # Quay UI + backend (image registry tab/cards + API).
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-quay:bs_1.49.4__1.32.1
+        disabled: false
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-quay-backend:bs_1.49.4__1.14.0
+        disabled: false
+      # Optional: enable Quay scaffolder actions.
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-scaffolder-backend-module-quay:bs_1.49.4__2.18.0
+        disabled: false
+
+      # Tekton Pipelines UI (entity CI tab/cards).
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-tekton:bs_1.49.4__3.37.0
+        disabled: false
+
+      # Argo CD backend (enables the Argo CD integration server-side).
+      # Note: RHDH 1.10 plugin catalog only provides the backend package as an overlay.
+      - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/backstage-community-plugin-argocd-backend:bs_1.49.4__1.4.0
+        disabled: false
+
