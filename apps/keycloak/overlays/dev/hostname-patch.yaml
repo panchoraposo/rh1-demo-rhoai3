@@ -5,4 +5,4 @@ metadata:
   namespace: keycloak
 spec:
   hostname:
-    hostname: keycloak.apps.cluster-dgtnv.dgtnv.sandbox593.opentlc.com
+    hostname: sso.apps.cluster-769tt.769tt.sandbox2852.opentlc.com

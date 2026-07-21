@@ -33,7 +33,9 @@ auth:
     oidc:
       production:
         prompt: auto
-        metadataUrl: https://sso.{{ openshift_base_domain }}/realms/backstage/.well-known/openid-configuration
+        # Use in-cluster HTTPS service for OIDC discovery to avoid intermittent
+        # router/TLS connection resets while still advertising the external issuer.
+        metadataUrl: https://keycloak-service-https.keycloak.svc/realms/backstage/.well-known/openid-configuration
         clientId: backstage
         clientSecret: ${OAUTH_CLIENT_SECRET}
         signIn:

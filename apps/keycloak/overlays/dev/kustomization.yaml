@@ -1,6 +1,7 @@
 resources:
   - ../../base
   - keycloak-instance.yaml
+  - keycloak-service-https.yaml
 
 patches:
   - path: hostname-patch.yaml
